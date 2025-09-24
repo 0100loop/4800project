@@ -9,6 +9,10 @@ app.get('/greetings', (req, res) => {
   res.send('Hello from ParkIt!')
 });
 
+app.get('/welcome', (req, res) => {
+  res.json({message: "Heyyy, this api works!"});
+});
+
 const port = process.env.PORT || 3000;
 app.listen(port, () => {
   console.log("Server running at http://localhost:" + port);
