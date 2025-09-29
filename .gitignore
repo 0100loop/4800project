@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 node_modules/ 
 .env 
 .env.*.local 
@@ -5,3 +6,6 @@ dist/
 .vscode/ 
 .DS_Store 
 coverage/ 
+=======
+server/node_modules/
+>>>>>>> feat/first-api
