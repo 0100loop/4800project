@@ -1,2 +1,7 @@
-server/node_modules/
-server/.DS_Store
+node_modules/ 
+.env 
+.env.*.local 
+dist/ 
+.vscode/ 
+.DS_Store 
+coverage/ 

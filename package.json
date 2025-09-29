@@ -1,0 +1,18 @@
+{
+  "name": "4800project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+  "dev": "npm-run-all --parallel dev:server dev:client",
+  "dev:server": "npm --prefix server run dev",
+  "dev:client": "npm --prefix client run dev"
+  "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "npm-run-all": "^4.1.5"
+  }
+}
