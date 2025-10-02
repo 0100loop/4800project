@@ -17,7 +17,7 @@ We’re using the MERN stack (MongoDB, Express, React, Node.js).
 
 \## Design
 
-Figma wireframes (Landing + Goal): <add link here when ready>
+Figma wireframes (Landing + Goal): <https://www.figma.com/design/YcBvne83M1l8IYZRzVsZN3/ParkIt-Figma?node-id=0-1&t=vBLBt9mW9r5QYE1h-1>
 
 
 
