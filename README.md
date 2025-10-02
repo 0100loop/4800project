@@ -17,19 +17,21 @@ We’re using the MERN stack (MongoDB, Express, React, Node.js).
 Figma wireframes (Landing + Goal): <https://www.figma.com/design/YcBvne83M1l8IYZRzVsZN3/ParkIt-Figma?node-id=0-1&t=vBLBt9mW9r5QYE1h-1>
 
 
-## How to run
+# Clone repo
+git clone https://github.com/0100loop/4800project.git
+cd 4800project
 
-### Requirements
-- Node.js 20.19+ or 22.12+
-- npm
-
-### Backend
-```bash
+# Backend
 cd server
 cp ../.env.example .env
 npm install
-npm run seed   # seed demo data
-npm run dev    # start API at http://localhost:5000
+npm run seed
+npm run dev   # http://localhost:5000/api/health
+
+# Frontend
+cd ../client
+npm install
+npm run dev   # open http://localhost:5173
 
 
 
