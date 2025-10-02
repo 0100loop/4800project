@@ -1,13 +1,9 @@
 import { Router } from 'express';
 const router = Router();
 
+// Return acceptance-criteria shape:
 router.get('/', (_req, res) => {
-  res.json({
-    ok: true,
-    service: 'api',
-    version: '1.0.0',
-    timestamp: new Date().toISOString(),
-  });
+  res.json({ status: 'ok' });
 });
 
 export default router;
