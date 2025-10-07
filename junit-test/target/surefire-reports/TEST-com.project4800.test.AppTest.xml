@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.project4800.test.AppTest" time="0.047" tests="1" errors="0" skipped="0" failures="0">
+<testsuite xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="https://maven.apache.org/surefire/maven-surefire-plugin/xsd/surefire-test-report-3.0.xsd" version="3.0" name="com.project4800.test.AppTest" time="0.08" tests="1" errors="0" skipped="0" failures="0">
   <properties>
     <property name="java.specification.version" value="19"/>
     <property name="maven.user.extensions" value="C:\Users\solar/.m2/extensions.xml"/>
@@ -19,7 +19,7 @@
     <property name="user.country" value="US"/>
     <property name="session.topDirectory" value="C:\Users\solar\4800project\junit-test"/>
     <property name="sun.boot.library.path" value="C:\Program Files\Java\jdk-19\bin"/>
-    <property name="sun.java.command" value="C:\Users\solar\AppData\Local\Temp\surefire1924823761080407100\surefirebooter-20251007154813657_3.jar C:\Users\solar\AppData\Local\Temp\surefire1924823761080407100 2025-10-07T15-48-12_454-jvmRun1 surefire-20251007154813657_1tmp surefire_0-20251007154813657_2tmp"/>
+    <property name="sun.java.command" value="C:\Users\solar\AppData\Local\Temp\surefire13576886777711280978\surefirebooter-20251007161718037_3.jar C:\Users\solar\AppData\Local\Temp\surefire13576886777711280978 2025-10-07T16-17-17_719-jvmRun1 surefire-20251007161718037_1tmp surefire_0-20251007161718037_2tmp"/>
     <property name="maven.project.settings" value="${session.rootDirectory}/.mvn/settings.xml"/>
     <property name="jdk.debug" value="release"/>
     <property name="surefire.test.class.path" value="C:\Users\solar\4800project\junit-test\target\test-classes;C:\Users\solar\4800project\junit-test\target\classes;C:\Users\solar\.m2\repository\junit\junit\4.12\junit-4.12.jar;C:\Users\solar\.m2\repository\org\hamcrest\hamcrest-core\1.3\hamcrest-core-1.3.jar;"/>
@@ -37,7 +37,7 @@
     <property name="java.vm.specification.vendor" value="Oracle Corporation"/>
     <property name="java.specification.name" value="Java Platform API Specification"/>
     <property name="maven.project.conf" value="${session.rootDirectory}/.mvn"/>
-    <property name="surefire.real.class.path" value="C:\Users\solar\AppData\Local\Temp\surefire1924823761080407100\surefirebooter-20251007154813657_3.jar"/>
+    <property name="surefire.real.class.path" value="C:\Users\solar\AppData\Local\Temp\surefire13576886777711280978\surefirebooter-20251007161718037_3.jar"/>
     <property name="user.script" value=""/>
     <property name="sun.management.compiler" value="HotSpot 64-Bit Tiered Compilers"/>
     <property name="java.runtime.version" value="19+36-2238"/>
