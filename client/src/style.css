@@ -1,79 +1,109 @@
-:root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+/* ------- ParkIt Design System ------- */
+:root{
+  --darkblue:#0a2540;   /* page bg */
+  --canvas:#0b1a2e;     /* panels */
+  --teal:#16bdca;
+  --teal-600:#0fb5bf;
+  --ink:#e5eef7;
+  --muted:#9fb7c8;
+  --border:#1f2a44;
+  --card:#102544;
+  --ok:#22c55e;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
-body {
-  margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+*{box-sizing:border-box}
+html,body,#root{height:100%}
+body{
+  margin:0;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, "Helvetica Neue", Arial;
+  background: linear-gradient(180deg, var(--darkblue) 0%, #091b33 100%);
+  color: var(--ink);
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
+/* Layout */
+.container{width:min(1180px,92%); margin:0 auto}
+.row{display:flex; gap:12px; flex-wrap:wrap}
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
+/* Header */
+.header{
+  background: rgba(9,27,51,.7);
+  border-bottom:1px solid var(--border);
+  backdrop-filter: blur(6px);
+  position:sticky; top:0; z-index:50;
 }
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
+.header__in{display:flex; align-items:center; justify-content:space-between; padding:14px 0}
+.brand{font-weight:700; letter-spacing:.3px; display:flex; align-items:center; gap:8px; color:var(--ink)}
+.toplinks a{color:#cbd5e1; text-decoration:none; padding:6px 10px; border-radius:10px}
+.toplinks a:hover{color:var(--teal); background:rgba(22,189,202,.08)}
 
-.card {
-  padding: 2em;
+/* Search bar */
+.search{
+  background:var(--canvas);
+  border:1px solid var(--border);
+  border-radius:16px;
+  display:flex; align-items:center; gap:12px;
+  padding:14px 16px;
 }
+.search input{
+  flex:1; background:transparent; border:0; outline:none; color:#e2e8f0;
+}
+.cta{
+  background:var(--teal);
+  color:#062b34;
+  border:0; padding:10px 14px; font-weight:700; border-radius:12px;
+  box-shadow:0 10px 24px rgba(22,189,202,.25);
+  cursor:pointer;
+}
+.cta:hover{ background:var(--teal-600) }
 
-#app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+/* Panels */
+.panel{
+  background:var(--canvas);
+  border:1px solid var(--border);
+  border-radius:16px; padding:16px;
+  box-shadow:0 8px 26px rgba(0,0,0,.25);
 }
+.panel-title{margin:0 0 10px; color:var(--teal); font-weight:700}
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Map placeholder */
+.mapbox{
+  height: 340px; border-radius:12px;
+  background: radial-gradient(650px 300px at 40% -20%, rgba(22,189,202,.20), transparent 70%),
+              linear-gradient(180deg, #102544, #0b1a2e);
+  position: relative;
 }
+.pin{
+  position:absolute; display:flex; align-items:center; gap:6px;
+  background: rgba(22,189,202,.12); border:1px solid rgba(22,189,202,.35);
+  color: var(--ink); padding:6px 10px; border-radius:12px; font-weight:600; font-size:.9rem;
+}
+.pin:before{content:"📍"}
+.pin--1{left:12%; top:18%}
+.pin--2{left:32%; top:55%}
+.pin--3{left:62%; top:30%}
+
+/* Spot card list (right side) */
+.card{
+  background:var(--canvas);
+  border:1px solid var(--border);
+  border-radius:16px; padding:14px;
+}
+.card + .card{margin-top:14px}
+.card h4{margin:0 0 2px}
+.price{color:var(--teal); font-weight:800; font-size:1.2rem}
+.badge{
+  display:inline-flex; align-items:center; gap:6px;
+  padding:6px 10px; border-radius:999px; font-size:.85rem; font-weight:600;
+  background:rgba(22,189,202,.10); color:var(--teal);
+  border:1px solid rgba(22,189,202,.25);
+}
+.badge--ok{background:rgba(34,197,94,.10); border-color:rgba(34,197,94,.25); color:var(--ok)}
+.pill{background:#102544; color:#cbd5e1; border:1px solid var(--border); padding:7px 11px; border-radius:9999px}
+
+/* Footer */
+.footer{border-top:1px solid var(--border); background:#0c1730; color:#cbd5e1; padding:20px 0; margin-top:28px}
+
+/* Grid helpers */
+.grid{display:grid; gap:16px}
+.grid-3{grid-template-columns: 1.6fr 1fr}
+@media (max-width: 980px){ .grid-3{grid-template-columns: 1fr} }
