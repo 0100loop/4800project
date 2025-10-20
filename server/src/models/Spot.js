@@ -1,15 +1,19 @@
 import mongoose from 'mongoose';
-const spotSchema = new mongoose.Schema({
-  title: { type: String, required: true },
-  description: String,
+const SpotSchema = new mongoose.Schema({
+  title: String,
+  pricePerHour: Number,
+  address: String,
   location: {
-    address: String, city: String, state: String, country: String,
-    lat: Number, lng: Number
+    type: { type: String, default: 'Point' },
+    coordinates: { type: [Number], index: '2dsphere' } // [lng, lat]
   },
-  images: [String],
-  pricePerNight: { type: Number, required: true, min: 0 },
-  amenities: [String],
-  host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true }
+  features: {
+    bathroom: Boolean,
+    evCharging: Boolean,
+    shuttle: Boolean,
+    tailgateFriendly: Boolean,
+    overnightAllowed: Boolean
+  },
+  hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
 }, { timestamps: true });
-export default mongoose.model('Spot', spotSchema);
-
+export default mongoose.model('Spot', SpotSchema);
