@@ -9,3 +9,7 @@ coverage/
 =======
 server/node_modules/
 >>>>>>> feat/first-api
+junit-test/.classpath
+junit-test/.project
+*.class
+*.prefs
