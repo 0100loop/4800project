@@ -1,34 +1,47 @@
-import { Link, useParams } from "react-router-dom";
 import { useEffect, useState } from "react";
+import { useParams, Link } from "react-router-dom";
 
 export default function SpotDetails(){
   const { id } = useParams();
   const [spot, setSpot] = useState(null);
-  const API = import.meta.env.VITE_API_URL || "/api";
 
   useEffect(()=>{
-    fetch(`${API}/spots/${id}`).then(r=>r.json()).then(setSpot).catch(()=>setSpot(null));
+    // pull all then find one (simpler than adding /listings/:id route now)
+    navigator.geolocation.getCurrentPosition(async p=>{
+      const r = await fetch(`/api/listings?lat=${p.coords.latitude}&lng=${p.coords.longitude}&maxKm=1000`);
+      const arr = await r.json();
+      setSpot(arr.find(x=>x._id===id));
+    }, async ()=>{
+      const r = await fetch(`/api/listings?lat=34.013&lng=-118.287&maxKm=1000`);
+      const arr = await r.json();
+      setSpot(arr.find(x=>x._id===id));
+    });
   },[id]);
 
-  const s = spot || { title:"Driveway • 2 min from West Bay Stadium", price:28, distance:"4 min walk", amenities:{ev:true,bathroom:true,shuttle:false}, tailgateFriendly:true, safetyScore:92 };
+  if(!spot) return <div className="container">Loading…</div>;
+
+  const amenities = [
+    spot.bathroom && "Bathroom access",
+    spot.evCharging && "EV charging",
+    spot.shuttle && "Shuttle available",
+    spot.tailgateFriendly && "Tailgate-friendly",
+    spot.overnightAllowed && "Overnight OK"
+  ].filter(Boolean);
 
   return (
-    <div className="container" style={{padding:"18px 0 30px"}}>
-      <div className="row" style={{marginBottom:12}}>
-        <Link to="/map" className="pill">← Back to map</Link>
-        <span className="badge badge--ok">Safety {s.safetyScore}</span>
-      </div>
-      <div className="panel">
-        <h2 style={{marginTop:0}}>{s.title}</h2>
-        <div className="row" style={{margin:"8px 0"}}>
-          <span className="badge">${s.price}</span>
-          <span className="badge">{s.distance}</span>
-          {s.amenities?.ev && <span className="badge">⚡ EV</span>}
-          {s.amenities?.bathroom && <span className="badge">🚻 Bathroom</span>}
-          {s.amenities?.shuttle && <span className="badge">🚌 Shuttle</span>}
-          {s.tailgateFriendly && <span className="badge">🎉 Tailgate</span>}
+    <div className="container" style={{padding:"18px 0 28px"}}>
+      <div className="card" style={{display:"grid", gap:12}}>
+        <h2 style={{marginTop:0}}>{spot.title}</h2>
+        <div>{spot.address}</div>
+        <div><b>${spot.pricePerHour}/hr</b></div>
+        <div>Safety score: <span className="badge badge--ok">{spot.safetyScore || "A"}</span></div>
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          {amenities.length ? amenities.map(a=><span key={a} className="pill">{a}</span>): <span className="pill">No add-ons</span>}
         </div>
-        <Link to="/book" className="cta" style={{display:"inline-block", marginTop:8}}>Reserve Spot</Link>
+        <div className="row" style={{marginTop:8}}>
+          <Link className="btn" to={`/book/${spot._id}`}>Reserve</Link>
+          <Link className="btn btn--ghost" to="/map">Back to map</Link>
+        </div>
       </div>
     </div>
   );

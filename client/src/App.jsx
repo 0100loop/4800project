@@ -1,48 +1,33 @@
-import { BrowserRouter, Routes, Route, Link } from "react-router-dom";
-import Home from "./pages/Home.jsx";
-import MapView from "./pages/MapView.jsx";
-import SpotDetails from "./pages/SpotDetails.jsx";
-import Booking from "./pages/Booking.jsx";
-import HostDashboard from "./pages/HostDashboard.jsx";
-import Safety from "./pages/Safety.jsx";
-
-function Header(){
-  return (
-    <header className="header">
-      <div className="container header__in">
-        <div className="brand">🚗 <span>ParkIt</span></div>
-        <nav className="toplinks">
-          <Link to="/">Home</Link>
-          <Link to="/map">Map</Link>
-          <Link to="/host">Host Dashboard</Link>
-          <Link to="/safety">Safety</Link>
-        </nav>
-      </div>
-    </header>
-  );
-}
-
-function Footer(){
-  return (
-    <footer className="footer">
-      <div className="container">© {new Date().getFullYear()} ParkIt — Find event parking fast.</div>
-    </footer>
-  );
-}
+import { useState } from "react";
+import "./index.css";
+import { HomeScreen } from "./pages/HomeScreen";
+import { MapView } from "./pages/MapView";
+import { HostDashboard } from "./pages/HostDashboard";
+import { BookingConfirmation } from "./pages/BookingConfirmation";
 
 export default function App(){
+  const [view, setView] = useState("home");
+  const [data, setData] = useState(null);
+  const onNavigate = (v, d)=>{ setView(v); setData(d||null); };
+
   return (
-    <BrowserRouter>
-      <Header />
-      <Routes>
-        <Route path="/" element={<Home />} />
-        <Route path="/map" element={<MapView />} />
-        <Route path="/spot/:id" element={<SpotDetails />} />
-        <Route path="/book" element={<Booking />} />
-        <Route path="/host" element={<HostDashboard />} />
-        <Route path="/safety" element={<Safety />} />
-      </Routes>
-      <Footer />
-    </BrowserRouter>
+    <>
+      <div className="nav">
+        <div className="nav-inner container">
+          <a href="#" className="brand" onClick={(e)=>{e.preventDefault(); onNavigate('home');}}>ParkIt</a>
+          <div className="linkbar">
+            <a href="#" className="pill" onClick={(e)=>{e.preventDefault(); onNavigate('home');}}>Home</a>
+            <a href="#" className="pill" onClick={(e)=>{e.preventDefault(); onNavigate('map');}}>Map</a>
+            <a href="#" className="pill" onClick={(e)=>{e.preventDefault(); onNavigate('host');}}>Host</a>
+          </div>
+        </div>
+      </div>
+
+      {view==="home" && <HomeScreen onNavigate={onNavigate} />}
+      {view==="map" && <MapView onNavigate={onNavigate} viewData={data} />}
+      {view==="host" && <HostDashboard onNavigate={onNavigate} />}
+      {view==="book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
+      {view==="spot" && <BookingConfirmation onNavigate={onNavigate} bookingData={{total:15}} /> }
+    </>
   );
 }

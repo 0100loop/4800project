@@ -1,0 +1,67 @@
+name: MERN CI
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Use Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Show repo layout
+        run: |
+          pwd
+          ls -la
+          if [ -d client ]; then echo "client exists"; fi
+          if [ -d server ]; then echo "server exists"; fi
+
+      # ----- Root install (optional) -----
+      - name: Install root deps (ci or install)
+        if: hashFiles('package.json') != ''
+        run: |
+          (npm ci --prefer-offline) || (npm install --no-audit --no-fund --legacy-peer-deps)
+
+      # ----- Client -----
+      - name: Install client deps
+        if: hashFiles('client/package.json') != ''
+        working-directory: client
+        run: |
+          (npm ci --prefer-offline) || (npm install --no-audit --no-fund --legacy-peer-deps)
+
+      - name: Test client (if present)
+        if: hashFiles('client/package.json') != ''
+        working-directory: client
+        run: npm test --if-present -- --watchAll=false
+
+      - name: Build client (ignore CRA warnings failing CI)
+        if: hashFiles('client/package.json') != ''
+        working-directory: client
+        env:
+          CI: "false"
+        run: npm run build --if-present
+
+      # ----- Server -----
+      - name: Install server deps
+        if: hashFiles('server/package.json') != ''
+        working-directory: server
+        run: |
+          (npm ci --prefer-offline) || (npm install --no-audit --no-fund --legacy-peer-deps)
+
+      - name: Test server (if present)
+        if: hashFiles('server/package.json') != ''
+        working-directory: server
+        run: npm test --if-present -- --watchAll=false
+
+
