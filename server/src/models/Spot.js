@@ -1,19 +1,21 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
+
 const SpotSchema = new mongoose.Schema({
-  title: String,
-  pricePerHour: Number,
-  address: String,
+  title: { type: String, required: true },
+  pricePerHour: { type: Number, required: true, min: 0 },
+  address: { type: String, required: true },
+  bathroom: { type: Boolean, default: false },
+  evCharging: { type: Boolean, default: false },
+  shuttle: { type: Boolean, default: false },
+  tailgateFriendly: { type: Boolean, default: false },
+  overnightAllowed: { type: Boolean, default: false },
+  host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   location: {
-    type: { type: String, default: 'Point' },
-    coordinates: { type: [Number], index: '2dsphere' } // [lng, lat]
-  },
-  features: {
-    bathroom: Boolean,
-    evCharging: Boolean,
-    shuttle: Boolean,
-    tailgateFriendly: Boolean,
-    overnightAllowed: Boolean
-  },
-  hostId: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }
+    type: { type: String, enum: ["Point"], default: "Point" },
+    coordinates: { type: [Number], required: true } // [lng, lat]
+  }
 }, { timestamps: true });
-export default mongoose.model('Spot', SpotSchema);
+
+SpotSchema.index({ location: "2dsphere" });
+
+export default mongoose.model("Spot", SpotSchema);
