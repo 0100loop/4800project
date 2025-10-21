@@ -1,9 +1,10 @@
 import { useState } from "react";
 import "./index.css";
-import { HomeScreen } from "./pages/HomeScreen";
-import { MapView } from "./pages/MapView";
-import { HostDashboard } from "./pages/HostDashboard";
-import { BookingConfirmation } from "./pages/BookingConfirmation";
+import { HomeScreen } from "./figma/HomeScreen";
+import { MapView } from "./figma/MapView";
+import { HostDashboard } from "./figma/HostDashboard";
+import { BookingConfirmation } from "./figma/BookingConfirmation";
+/*import {LoginScreen} from "./figma/Login";*/
 
 export default function App(){
   const [view, setView] = useState("home");
@@ -28,6 +29,7 @@ export default function App(){
       {view==="host" && <HostDashboard onNavigate={onNavigate} />}
       {view==="book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
       {view==="spot" && <BookingConfirmation onNavigate={onNavigate} bookingData={{total:15}} /> }
+      {/*view === "home" && <LoginScreen onNavigate={onNavigate} />*/}
     </>
   );
 }
