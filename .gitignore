@@ -13,3 +13,6 @@ junit-test/.classpath
 junit-test/.project
 *.class
 *.prefs
+.env
+*.env
+server/.env
