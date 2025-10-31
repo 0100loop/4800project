@@ -1,14 +1,35 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { Icon } from "leaflet";
 import { MapPin, Navigation, DollarSign, Clock, Filter, ChevronLeft, Search } from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
+import "leaflet/dist/leaflet.css";
+
+// Fix for default marker icon in react-leaflet
+delete Icon.Default.prototype._getIconUrl;
+Icon.Default.mergeOptions({
+  iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png',
+  iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png',
+  shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png',
+});
+
+// Venue coordinates
+const venueCoordinates = {
+  'Crypto.com Arena': [34.0430, -118.2673],
+  'SoFi Stadium': [33.9533, -118.3390],
+  'Dodger Stadium': [34.0739, -118.2400],
+  'Rose Bowl Stadium': [34.1613, -118.1676],
+  'Hollywood Bowl': [34.1122, -118.3396],
+};
 
 export function MapView({ onNavigate, viewData }) {
   const [selected, setSelected] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showVenueSearch, setShowVenueSearch] = useState(false);
+  const [mapCenter, setMapCenter] = useState([34.0430, -118.2673]); // Default to Crypto.com Arena
 
   const currentVenue = viewData?.venue?.name || viewData?.venue || "Crypto.com Arena";
   const currentEvent = viewData?.event?.name || "Find Parking";
@@ -24,12 +45,21 @@ export function MapView({ onNavigate, viewData }) {
     v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
     v.city.toLowerCase().includes(searchQuery.toLowerCase())) : allVenues);
 
+  // Parking spots with coordinates (relative to venue)
   const parkingSpots = [
-    { id:1, price:15, distance:'0.3 mi', walkTime:'6 min', rating:4.8, host:'Mike T.', amenities:['EV Charging','Bathroom'], tailgateFriendly:true },
-    { id:2, price:20, distance:'0.4 mi', walkTime:'8 min', rating:4.9, host:'Sarah L.', amenities:['Covered','Shuttle'], tailgateFriendly:false },
-    { id:3, price:12, distance:'0.5 mi', walkTime:'10 min', rating:4.6, host:'John D.', amenities:['Bathroom','Food Nearby'], tailgateFriendly:true },
-    { id:4, price:18, distance:'0.2 mi', walkTime:'4 min', rating:5.0, host:'Emma R.', amenities:['EV Charging','Covered','Bathroom'], tailgateFriendly:false },
+    { id:1, price:15, distance:'0.3 mi', walkTime:'6 min', rating:4.8, host:'Mike T.', amenities:['EV Charging','Bathroom'], tailgateFriendly:true, lat:34.0440, lng:-118.2683 },
+    { id:2, price:20, distance:'0.4 mi', walkTime:'8 min', rating:4.9, host:'Sarah L.', amenities:['Covered','Shuttle'], tailgateFriendly:false, lat:34.0450, lng:-118.2693 },
+    { id:3, price:12, distance:'0.5 mi', walkTime:'10 min', rating:4.6, host:'John D.', amenities:['Bathroom','Food Nearby'], tailgateFriendly:true, lat:34.0420, lng:-118.2663 },
+    { id:4, price:18, distance:'0.2 mi', walkTime:'4 min', rating:5.0, host:'Emma R.', amenities:['EV Charging','Covered','Bathroom'], tailgateFriendly:false, lat:34.0435, lng:-118.2678 },
   ];
+
+  // Update map center when venue changes
+  useEffect(() => {
+    const coords = venueCoordinates[currentVenue];
+    if (coords) {
+      setMapCenter(coords);
+    }
+  }, [currentVenue]);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -65,9 +95,69 @@ export function MapView({ onNavigate, viewData }) {
         </div>
       </div>
 
-      {/* Mock map background */}
-      <div className="flex-1 relative bg-gradient-to-br from-gray-100 to-gray-200">
-        <Button className="absolute top-4 right-4 bg-white text-[#0A2540] hover:bg-gray-50 shadow-lg rounded-full z-30" size="icon">
+      {/* Real Map with Leaflet */}
+      <div className="flex-1 relative">
+        <MapContainer
+          center={mapCenter}
+          zoom={15}
+          style={{ height: '100%', width: '100%', zIndex: 0 }}
+          key={`${mapCenter[0]}-${mapCenter[1]}`} // Force re-render on center change
+        >
+          <TileLayer
+            attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+            url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+          />
+          
+          {/* Venue marker */}
+          <Marker position={mapCenter}>
+            <Popup>
+              <div className="text-sm">
+                <strong>{currentVenue}</strong>
+                {currentEvent !== "Find Parking" && (
+                  <>
+                    <br />
+                    <span className="text-gray-600">{currentEvent}</span>
+                  </>
+                )}
+              </div>
+            </Popup>
+          </Marker>
+
+          {/* Parking spot markers */}
+          {parkingSpots.map(spot => (
+            <Marker 
+              key={spot.id} 
+              position={[spot.lat, spot.lng]}
+              eventHandlers={{
+                click: () => setSelected(spot.id),
+              }}
+            >
+              <Popup>
+                <div className="text-sm">
+                  <strong>${spot.price}</strong> - {spot.host}
+                  <br />
+                  <span className="text-gray-600">{spot.distance} • {spot.walkTime} walk</span>
+                  <br />
+                  <Badge className="mt-1 text-xs">{spot.rating} ⭐</Badge>
+                </div>
+              </Popup>
+            </Marker>
+          ))}
+        </MapContainer>
+        
+        {/* Location button */}
+        <Button 
+          className="absolute top-4 right-4 bg-white text-[#0A2540] hover:bg-gray-50 shadow-lg rounded-full z-30" 
+          size="icon"
+          onClick={() => {
+            // Center map on current location or venue
+            if (navigator.geolocation) {
+              navigator.geolocation.getCurrentPosition((position) => {
+                setMapCenter([position.coords.latitude, position.coords.longitude]);
+              });
+            }
+          }}
+        >
           <Navigation className="w-4 h-4"/>
         </Button>
       </div>
@@ -81,7 +171,11 @@ export function MapView({ onNavigate, viewData }) {
         <div className="p-4 space-y-3">
           {parkingSpots.map(s=>(
             <Card key={s.id} className={`cursor-pointer transition-all ${selected===s.id?"border-[#06B6D4] border-2 shadow-md":"border-gray-200 hover:shadow-md"}`}
-              onClick={()=>onNavigate('spot', {spot:s})}>
+              onClick={()=>{
+                setSelected(s.id);
+                setMapCenter([s.lat, s.lng]);
+              }}
+              onDoubleClick={()=>onNavigate('spot', {spot:s})}>
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg flex items-center justify-center">
