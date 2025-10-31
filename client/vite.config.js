@@ -5,7 +5,16 @@ export default defineConfig({
   plugins: [react()],
   server: {
     port: 5173,
-    // If you prefer proxy instead of hardcoding the URL in HomePage:
-    // proxy: { '/api': { target: 'http://127.0.0.1:5000', changeOrigin: true } }
+    // Proxy `/api` requests to the backend server (default port 5000).
+    // This ensures fetch('/api/...') from the client is forwarded to the API
+    // rather than being served by the Vite dev server.
+    proxy: {
+      '/api': {
+        target: 'http://127.0.0.1:5000',
+        changeOrigin: true,
+        secure: false,
+        // keep the path as-is, so /api/spots -> http://127.0.0.1:5000/api/spots
+      },
+    },
   }
 })

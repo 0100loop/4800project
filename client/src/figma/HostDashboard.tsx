@@ -1,3 +1,12 @@
+/*
+To Do: 
+Make spots belong to hosts 
+Dashboard stats - avg rating - total bookings - total earnings
+Upcoming bookings - need to be able to make a booking
+Need to be able to view and edit spots
+Avoid duplicate spots
+*/
+
 import { Plus, Calendar, DollarSign, MapPin, Settings, TrendingUp, Users, ChevronLeft, Zap, Home as HomeIcon, Truck } from 'lucide-react';
 import { Button } from './ui/button.js';
 import { Card, CardContent, CardHeader, CardTitle } from './ui/card.js';
@@ -7,10 +16,34 @@ import { Label } from './ui/label.js';
 import { Input } from './ui/input.js';
 import { Textarea } from './ui/textarea.js';
 import { Separator } from './ui/separator.js';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+// @ts-ignore
+import { apiFetch } from '../lib/api.js';
+
+const Toggle = ({ enabled, setEnabled }: { enabled: boolean; setEnabled: (v: boolean) => void }) => {
+  return (
+    <button
+      onClick={() => setEnabled(!enabled)}
+      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors duration-300 ${enabled ? "bg-[#06B6D4]" : "bg-gray-300"
+        }`}
+    >
+      <span
+        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform duration-300 ${enabled ? "translate-x-6" : "translate-x-1"
+          }`}
+      />
+    </button>
+  );
+};
 
 interface HostDashboardProps {
   onNavigate: (view: string) => void;
+}
+
+interface ImportMeta {
+  env: {
+    VITE_API_BASE_URL: string;
+    [key: string]: any;
+  };
 }
 
 export function HostDashboard({ onNavigate }: HostDashboardProps) {
@@ -21,26 +54,43 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
   const [evCharging, setEvCharging] = useState(false);
   const [shuttleService, setShuttleService] = useState(false);
 
-  const mySpots = [
-    {
-      id: 1,
-      address: '1234 Oak Street',
-      price: 15,
-      totalBookings: 23,
-      earnings: 345,
-      nextEvent: 'Lakers vs Warriors - Oct 15',
-      isActive: true
-    },
-    {
-      id: 2,
-      address: '5678 Maple Avenue',
-      price: 20,
-      totalBookings: 18,
-      earnings: 360,
-      nextEvent: 'Taylor Swift - Oct 22',
-      isActive: true
+  const [address, setAddress] = useState("");
+  const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
+  const [spaces, setSpaces] = useState("");
+
+  const [mySpots, setMySpots] = useState<any[]>([]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function loadMySpots() {
+      try {
+        // Fetch all spots and let the UI decide what to show as "my spots".
+        // If you want only the current user's spots, we can filter by host id
+        // once the user's id is available (from login token / profile endpoint).
+        const spots = await apiFetch('/api/spots');
+        if (!mounted) return;
+        // normalize spots to expected shape where possible
+        const normalized = (spots || []).map((s: any) => ({
+          id: s._id || s.id,
+          address: s.address || s.title || s.location?.address || '',
+          price: s.price ?? s.pricePerHour ?? s.pricePerEvent ?? 0,
+          totalBookings: s.totalBookings || 0,
+          earnings: s.earnings || 0,
+          nextEvent: s.nextEvent || null,
+          isActive: s.isActive ?? true,
+          raw: s,
+        }));
+        setMySpots(normalized);
+      } catch (e) {
+        // non-fatal — keep examples in place if desired
+        console.error('Failed to load spots', e);
+      }
     }
-  ];
+
+    loadMySpots();
+    return () => { mounted = false; };
+  }, []);
 
   const upcomingBookings = [
     { id: 1, guest: 'Sarah J.', event: 'Lakers vs Warriors', date: 'Oct 15', amount: 15 },
@@ -49,6 +99,61 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
   ];
 
   if (isAddingSpot) {
+    const resetForm = () => {
+      setAddress("");
+      setDescription("");
+      setPrice("");
+      setSpaces("");
+      setTailgateFriendly(false);
+      setOvernightParking(false);
+      setBathroomAccess(false);
+      setEvCharging(false);
+      setShuttleService(false);
+    };
+
+    const handleSubmit = async () => {
+      const spotData = {
+        address,
+        description,
+        price,
+        spaces,
+        tailgateFriendly,
+        overnightParking,
+        bathroomAccess,
+        evCharging,
+        shuttleService,
+      };
+
+      // Use VITE_API_BASE_URL when provided (e.g. http://localhost:3000).
+      // If not set, fall back to the relative path so existing setups keep working.
+      const apiBase = (import.meta as unknown as ImportMeta).env?.VITE_API_BASE_URL ?? "";
+      const url = apiBase ? apiBase.replace(/\/$/, "") + '/api/spots' : '/api/spots';
+
+      try {
+        const data = await apiFetch(url, { method: 'POST', body: spotData });
+        console.log('✅ Spot created:', data);
+        // prepend to local state so the UI updates immediately
+        setMySpots((prev) => [{
+          id: data._id || data.id,
+          address: data.address || data.title || '',
+          price: data.price ?? data.pricePerHour ?? 0,
+          totalBookings: data.totalBookings || 0,
+          earnings: data.earnings || 0,
+          nextEvent: data.nextEvent || null,
+          isActive: data.isActive ?? true,
+          raw: data,
+        }, ...prev]);
+  alert('Spot submitted for review!');
+  // clear the form for the next add
+  resetForm();
+  setIsAddingSpot(false);
+      } catch (err) {
+        console.error("❌ Error:", err);
+        alert("Failed to submit spot.");
+      }
+    };
+
+
     return (
       <div className="min-h-screen bg-white">
         {/* Header */}
@@ -56,7 +161,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => setIsAddingSpot(false)}
+            onClick={() => { resetForm(); setIsAddingSpot(false); }}
             className="text-white hover:bg-white/10 rounded-full"
           >
             <ChevronLeft className="w-5 h-5" />
@@ -72,30 +177,59 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
             </CardHeader>
             <CardContent className="space-y-4">
               <div>
-                <Label htmlFor="address">Address</Label>
-                <Input id="address" placeholder="123 Main Street" />
+                <Label htmlFor="address" className="text-sm font-medium text-gray-700">Address</Label>
+                <Input id="address"
+                  placeholder="123 Main Street"
+                  value={address}
+                  onChange={(e) => setAddress(e.target.value)}
+                  className="text-gray-900 placeholder-gray-500 bg-white" />
               </div>
 
               <div>
-                <Label htmlFor="description">Description</Label>
+                <Label htmlFor="description" className="text-sm font-medium text-gray-700">Description</Label>
                 <Textarea
                   id="description"
                   placeholder="Describe your parking spot, access instructions, and any special features..."
                   rows={4}
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  className="text-gray-900 placeholder-gray-500 bg-white"
                 />
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label htmlFor="price">Price per Event</Label>
+                  <Label htmlFor="price" className="text-sm font-medium text-gray-700">Price per Event</Label>
                   <div className="relative">
-                    <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-500">$</span>
-                    <Input id="price" type="number" placeholder="15" className="pl-7" />
+                    <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none">$</span>
+                    <Input id="price"
+                      type="number"
+                      placeholder="15"
+                      value={price}
+                      onChange={(e) => {
+                        const value = e.target.value;
+                        // Only allow up to 2 decimal places
+                        if (/^\d*\.?\d{0,2}$/.test(value)) setPrice(value);
+                      }}
+                      className="pl-7 text-gray-900 placeholder-gray-500 bg-white"
+                    />
                   </div>
                 </div>
                 <div>
-                  <Label htmlFor="spaces">Number of Spaces</Label>
-                  <Input id="spaces" type="number" placeholder="1" />
+                  <Label htmlFor="spaces" className="text-sm font-medium text-gray-700">Number of Spaces</Label>
+                  <Input
+                    id="spaces"
+                    type="text"
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    placeholder="1"
+                    value={spaces}
+                    onChange={(e) => {
+                      const value = e.target.value ?? ""; // fallback to empty string
+                      if (/^\d*$/.test(value)) setSpaces(value);
+                    }}
+                    className="text-gray-900 placeholder-gray-500 bg-white"
+                  />
                 </div>
               </div>
             </CardContent>
@@ -112,71 +246,77 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
                     <Calendar className="w-5 h-5 text-[#06B6D4]" />
                   </div>
                   <div>
-                    <Label>Tailgate Friendly</Label>
-                    <p className="text-sm text-gray-600">Allow pre-game gatherings</p>
-                  </div>
-                </div>
-                <Switch checked={tailgateFriendly} onCheckedChange={setTailgateFriendly} />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                    <Calendar className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <Label>Overnight Parking</Label>
-                    <p className="text-sm text-gray-600">Allow parking after event</p>
-                  </div>
-                </div>
-                <Switch checked={overnightParking} onCheckedChange={setOvernightParking} />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                    <HomeIcon className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <Label>Bathroom Access</Label>
-                    <p className="text-sm text-gray-600">+$3 per booking</p>
-                  </div>
-                </div>
-                <Switch checked={bathroomAccess} onCheckedChange={setBathroomAccess} />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                    <Zap className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <Label>EV Charging</Label>
-                    <p className="text-sm text-gray-600">+$8 per booking</p>
-                  </div>
-                </div>
-                <Switch checked={evCharging} onCheckedChange={setEvCharging} />
-              </div>
-
-              <Separator />
-
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                    <Truck className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <Label>Shuttle Service</Label>
+                    <p className="text-gray-800 font-medium">Tailgate Friendly</p>
                     <p className="text-sm text-gray-600">+$5 per booking</p>
                   </div>
                 </div>
-                <Switch checked={shuttleService} onCheckedChange={setShuttleService} />
+                <Toggle enabled={tailgateFriendly} setEnabled={setTailgateFriendly} />
+              </div>
+
+              <Separator />
+
+              <div className="space-y-4">
+                {/* Overnight Parking */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
+                      <Calendar className="w-5 h-5 text-[#06B6D4]" />
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-medium">Overnight Parking</p>
+                      <p className="text-sm text-gray-600">+$5 per booking</p>
+                    </div>
+                  </div>
+                  <Toggle enabled={overnightParking} setEnabled={setOvernightParking} />
+                </div>
+
+                <Separator />
+
+                {/* Bathroom Access */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
+                      <HomeIcon className="w-5 h-5 text-[#06B6D4]" />
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-medium">Bathroom Access</p>
+                      <p className="text-sm text-gray-600">+$3 per booking</p>
+                    </div>
+                  </div>
+                  <Toggle enabled={bathroomAccess} setEnabled={setBathroomAccess} />
+                </div>
+
+                <Separator />
+
+                {/* EV Charging */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
+                      <Zap className="w-5 h-5 text-[#06B6D4]" />
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-medium">EV Charging</p>
+                      <p className="text-sm text-gray-600">+$8 per booking</p>
+                    </div>
+                  </div>
+                  <Toggle enabled={evCharging} setEnabled={setEvCharging} />
+                </div>
+
+                <Separator />
+
+                {/* Shuttle Service */}
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
+                      <Truck className="w-5 h-5 text-[#06B6D4]" />
+                    </div>
+                    <div>
+                      <p className="text-gray-800 font-medium">Shuttle Service</p>
+                      <p className="text-sm text-gray-600">+$5 per booking</p>
+                    </div>
+                  </div>
+                  <Toggle enabled={shuttleService} setEnabled={setShuttleService} />
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -194,7 +334,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
         <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
           <div className="max-w-2xl mx-auto">
             <Button
-              onClick={() => setIsAddingSpot(false)}
+              onClick={handleSubmit}
               className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white py-6"
             >
               Submit for Review

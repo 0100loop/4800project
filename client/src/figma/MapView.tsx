@@ -3,17 +3,49 @@ import { Button } from './ui/button.js';
 import { Card, CardContent } from './ui/card.js';
 import { Badge } from './ui/badge.js';
 import { Input } from './ui/input.js';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 interface MapViewProps {
   onNavigate: (view: string, data?: any) => void;
   viewData?: any;
 }
 
+interface Listing {
+  id: number;
+  lat: number;
+  lng: number;
+  price: number;
+  distanceKm?: number;
+  walkTime?: string;
+  rating?: number;
+  host?: string;
+  amenities?: string[];
+  tailgateFriendly?: boolean;
+  safetyScore?: number;
+  address?: string;
+}
+
+
 export function MapView({ onNavigate, viewData }: MapViewProps) {
   const [selectedSpot, setSelectedSpot] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [showVenueSearch, setShowVenueSearch] = useState(false);
+  const [parkingSpots, setParkingSpots] = useState<Listing[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+  async function fetchListings() {
+    try {
+      const response = await fetch('http://localhost:5173/api/listings'); // Adjust port if different
+      const data = await response.json();
+      setParkingSpots(data);
+    } catch (error) {
+      console.error('Failed to load listings:', error);
+    }
+  }
+
+  fetchListings();
+}, []);
 
   // Get venue info from viewData if available
   const currentVenue = viewData?.venue || viewData?.event?.venue || 'Crypto.com Arena';
@@ -46,7 +78,7 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
     onNavigate('map', { venue });
   };
 
-  const parkingSpots = [
+  /*const parkingSpots = [
     {
       id: 1,
       lat: 34.0430,
@@ -99,7 +131,29 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
       tailgateFriendly: false,
       safetyScore: 99
     }
-  ];
+  ];*/
+  useEffect(() => {
+  async function fetchListings() {
+    try {
+      // Example coordinates (Downtown LA)
+      const lat = 34.0522;
+      const lng = -118.2437;
+
+      const res = await fetch(
+        `http://localhost:5000/api/listings?lat=${lat}&lng=${lng}&maxKm=10`
+      );
+
+      const data = await res.json();
+      setParkingSpots(data);
+    } catch (error) {
+      console.error("Error fetching listings:", error);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  fetchListings();
+}, []);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -234,64 +288,37 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
         </div>
 
         <div className="p-4 space-y-3">
-          {parkingSpots.map((spot) => (
-            <Card
-              key={spot.id}
-              className={`cursor-pointer transition-all ${
-                selectedSpot === spot.id 
-                  ? 'border-[#06B6D4] border-2 shadow-md' 
-                  : 'border-gray-200 hover:shadow-md'
-              }`}
-              onClick={() => onNavigate('spot', { spot })}
-            >
-              <CardContent className="p-4">
-                <div className="flex items-start gap-3">
-                  {/* Spot Image Placeholder */}
-                  <div className="w-20 h-20 bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg flex items-center justify-center flex-shrink-0">
-                    <MapPin className="w-8 h-8 text-[#06B6D4]" />
-                  </div>
-
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-start justify-between gap-2 mb-2">
-                      <div>
-                        <div className="flex items-center gap-2">
-                          <h4 className="text-[#0A2540]">${spot.price}</h4>
-                          <Badge variant="outline" className="text-xs border-[#06B6D4] text-[#06B6D4]">
-                            {spot.rating} ⭐
-                          </Badge>
-                        </div>
-                        <p className="text-sm text-gray-600">Hosted by {spot.host}</p>
-                      </div>
+          {loading ? (
+            <p className="text-center text-gray-500 py-4">Loading listings...</p>
+          ) : parkingSpots.length === 0 ? (
+            <p className="text-center text-gray-500 py-4">No spots nearby.</p>
+          ) : (
+            parkingSpots.map((spot) => (
+              <Card
+                key={spot.id}
+                className="cursor-pointer transition-all border-gray-200 hover:shadow-md"
+                onClick={() => onNavigate('spot', { spot })}
+              >
+                <CardContent className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className="w-20 h-20 bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg flex items-center justify-center">
+                      <MapPin className="w-8 h-8 text-[#06B6D4]" />
                     </div>
 
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
-                      <div className="flex items-center gap-1">
-                        <MapPin className="w-3 h-3" />
-                        <span>{spot.distance}</span>
-                      </div>
-                      <div className="flex items-center gap-1">
-                        <Clock className="w-3 h-3" />
-                        <span>{spot.walkTime} walk</span>
-                      </div>
-                    </div>
-
-                    <div className="flex items-center gap-2 flex-wrap">
-                      {spot.tailgateFriendly && (
-                        <Badge className="bg-[#06B6D4]/10 text-[#06B6D4] text-xs border-0">
-                          🎉 Tailgate OK
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <h4 className="text-[#0A2540]">${spot.price}</h4>
+                        <Badge variant="outline" className="text-xs border-[#06B6D4] text-[#06B6D4]">
+                          {spot.distanceKm?.toFixed(1)} km
                         </Badge>
-                      )}
-                      {spot.amenities.slice(0, 2).map((amenity) => (
-                        <Badge key={amenity} variant="secondary" className="text-xs">
-                          {amenity}
-                        </Badge>
-                      ))}
+                      </div>
+                      <p className="text-sm text-gray-600">{spot.address || "No address"}</p>
                     </div>
                   </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+                </CardContent>
+              </Card>
+            ))
+          )}
         </div>
       </div>
     </div>
