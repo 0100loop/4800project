@@ -4,7 +4,7 @@ import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
 import { Card, CardContent } from './ui/card.js';
 import { Badge } from './ui/badge.js';
-import { ImageWithFallback } from './figma/ImageWithFallback.js';
+import { ImageWithFallback } from '../thing/ImageWithFallback.tsx';
 
 interface HomeScreenProps {
   onNavigate: (view: string, data?: any) => void;

@@ -5,6 +5,8 @@ Dashboard stats - avg rating - total bookings - total earnings
 Upcoming bookings - need to be able to make a booking
 Need to be able to view and edit spots
 Avoid duplicate spots
+verify addresses
+map view for bookings/listings
 */
 
 import { Plus, Calendar, DollarSign, MapPin, Settings, TrendingUp, Users, ChevronLeft, Zap, Home as HomeIcon, Truck } from 'lucide-react';

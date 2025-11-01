@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Button } from './ui/button.tsx.js';
+import { Button } from './ui/button.tsx';
 import { Input } from './ui/input.js';
 import { Separator } from './ui/separator.js';
 import { ParkingCircle, Mail, Lock, Eye, EyeOff } from 'lucide-react';
