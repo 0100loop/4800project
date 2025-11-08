@@ -70,7 +70,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
         // Fetch all spots and let the UI decide what to show as "my spots".
         // If you want only the current user's spots, we can filter by host id
         // once the user's id is available (from login token / profile endpoint).
-        const spots = await apiFetch('/api/spots');
+        const spots = await apiFetch('/api/spots/mine', {auth: true});
         if (!mounted) return;
         // normalize spots to expected shape where possible
         const normalized = (spots || []).map((s: any) => ({
@@ -115,15 +115,15 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
 
     const handleSubmit = async () => {
       const spotData = {
+        title: description,
+        pricePerHour: price,
         address,
-        description,
-        price,
-        spaces,
-        tailgateFriendly,
-        overnightParking,
-        bathroomAccess,
+        bathroom: bathroomAccess,
         evCharging,
-        shuttleService,
+        shuttle: shuttleService,
+        tailgateFriendly,
+        overnightAllowed: overnightParking,
+        spaces,
       };
 
       // Use VITE_API_BASE_URL when provided (e.g. http://localhost:3000).
@@ -132,7 +132,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
       const url = apiBase ? apiBase.replace(/\/$/, "") + '/api/spots' : '/api/spots';
 
       try {
-        const data = await apiFetch(url, { method: 'POST', body: spotData });
+        const data = await apiFetch(url, { method: 'POST', body: spotData, auth:true });
         console.log('✅ Spot created:', data);
         // prepend to local state so the UI updates immediately
         setMySpots((prev) => [{

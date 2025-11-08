@@ -1,4 +1,5 @@
 import mongoose from "mongoose";
+import auth from "../middleware/auth.js"
 
 const SpotSchema = new mongoose.Schema({
   title: { type: String, required: true },
@@ -9,6 +10,7 @@ const SpotSchema = new mongoose.Schema({
   shuttle: { type: Boolean, default: false },
   tailgateFriendly: { type: Boolean, default: false },
   overnightAllowed: { type: Boolean, default: false },
+  spaces: {type: Number, default: 0},
   host: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   location: {
     type: { type: String, enum: ["Point"], default: "Point" },

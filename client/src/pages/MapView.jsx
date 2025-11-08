@@ -1,3 +1,14 @@
+/*
+ToDo
+Need to see spot details by clicking somehow
+Make displayed spot info make more sense
+Could limit number of results
+Could contain results to a radius around venue
+Add ratings
+What amenities do we display? Do we add a search/filter function
+Probably shouldnt book your own listing
+*/
+
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Icon } from "leaflet";
@@ -7,6 +18,8 @@ import { Card, CardContent } from "../ui/card";
 import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import "leaflet/dist/leaflet.css";
+import { apiFetch } from "../lib/api";
+
 
 // Fix for default marker icon in react-leaflet
 delete Icon.Default.prototype._getIconUrl;
@@ -46,12 +59,30 @@ export function MapView({ onNavigate, viewData }) {
     v.city.toLowerCase().includes(searchQuery.toLowerCase())) : allVenues);
 
   // Parking spots with coordinates (relative to venue)
-  const parkingSpots = [
+  /*const parkingSpots = [
     { id:1, price:15, distance:'0.3 mi', walkTime:'6 min', rating:4.8, host:'Mike T.', amenities:['EV Charging','Bathroom'], tailgateFriendly:true, lat:34.0440, lng:-118.2683 },
     { id:2, price:20, distance:'0.4 mi', walkTime:'8 min', rating:4.9, host:'Sarah L.', amenities:['Covered','Shuttle'], tailgateFriendly:false, lat:34.0450, lng:-118.2693 },
     { id:3, price:12, distance:'0.5 mi', walkTime:'10 min', rating:4.6, host:'John D.', amenities:['Bathroom','Food Nearby'], tailgateFriendly:true, lat:34.0420, lng:-118.2663 },
     { id:4, price:18, distance:'0.2 mi', walkTime:'4 min', rating:5.0, host:'Emma R.', amenities:['EV Charging','Covered','Bathroom'], tailgateFriendly:false, lat:34.0435, lng:-118.2678 },
-  ];
+  ];*/
+
+  const [parkingSpots, setParkingSpots] = useState([]);
+const [loading, setLoading] = useState(true);
+
+useEffect(() => {
+  async function loadSpots() {
+    try {
+      const data = await apiFetch('/api/spots');
+      setParkingSpots(data);
+    } catch (err) {
+      console.error("Failed to load spots", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  loadSpots();
+}, []);
 
   // Update map center when venue changes
   useEffect(() => {
@@ -124,21 +155,22 @@ export function MapView({ onNavigate, viewData }) {
           </Marker>
 
           {/* Parking spot markers */}
-          {parkingSpots.map(spot => (
-            <Marker 
-              key={spot.id} 
-              position={[spot.lat, spot.lng]}
+          {parkingSpots.map((s) => (
+            <Marker
+              key={s._id || s.id}
+              position={[
+                s.location?.coordinates?.[1] ?? 34.043,  // fallback lat
+                s.location?.coordinates?.[0] ?? -118.267, // fallback lng
+              ]}
               eventHandlers={{
-                click: () => setSelected(spot.id),
+                click: () => setSelected(s._id || s.id),
               }}
             >
               <Popup>
                 <div className="text-sm">
-                  <strong>${spot.price}</strong> - {spot.host}
+                  <strong>${s.price ?? 0}</strong>
                   <br />
-                  <span className="text-gray-600">{spot.distance} • {spot.walkTime} walk</span>
-                  <br />
-                  <Badge className="mt-1 text-xs">{spot.rating} ⭐</Badge>
+                  <span className="text-gray-600">{s.address || s.title || "No address"}</span>
                 </div>
               </Popup>
             </Marker>
@@ -170,12 +202,18 @@ export function MapView({ onNavigate, viewData }) {
         </div>
         <div className="p-4 space-y-3">
           {parkingSpots.map(s=>(
-            <Card key={s.id} className={`cursor-pointer transition-all ${selected===s.id?"border-[#06B6D4] border-2 shadow-md":"border-gray-200 hover:shadow-md"}`}
-              onClick={()=>{
-                setSelected(s.id);
-                setMapCenter([s.lat, s.lng]);
+            <Card
+              key={s._id || s.id || `${s.lat}-${s.lng}`}
+              className={`cursor-pointer transition-all ${
+                selected === s.id
+                  ? "border-[#06B6D4] border-2 shadow-md"
+                  : "border-gray-200 hover:shadow-md"
+              }`}
+              onClick={() => {
+                setSelected(s._id || s.id);
+                setMapCenter([s.location.coordinates[1], s.location.coordinates[0]]); // [lat, lng]
               }}
-              onDoubleClick={()=>onNavigate('spot', {spot:s})}>
+            >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg flex items-center justify-center">
@@ -185,10 +223,10 @@ export function MapView({ onNavigate, viewData }) {
                     <div className="flex items-start justify-between gap-2 mb-2">
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="text-[#0A2540] text-lg font-semibold">${s.price}</h4>
+                          <h4 className="text-[#0A2540] text-lg font-semibold">${s.pricePerHour}</h4>
                           <Badge className="text-xs border-[#06B6D4] text-[#06B6D4] border"> {s.rating} ⭐</Badge>
                         </div>
-                        <p className="text-sm text-gray-600">Hosted by {s.host}</p>
+                        <p className="text-sm text-gray-600">Hosted by {s.host?.name || "Unknown"}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-4 text-sm text-gray-600 mb-2">
@@ -197,7 +235,7 @@ export function MapView({ onNavigate, viewData }) {
                     </div>
                     <div className="flex items-center gap-2 flex-wrap">
                       {s.tailgateFriendly && <Badge className="bg-[#06B6D4]/10 text-[#06B6D4] text-xs border-0">🎉 Tailgate OK</Badge>}
-                      {s.amenities.slice(0,2).map(a=><Badge key={a} className="bg-gray-100 text-gray-800 text-xs">{a}</Badge>)}
+                      <p>{s.address?.slice(0, 40) ?? "Unknown address"}</p>
                     </div>
                   </div>
                 </div>
