@@ -1,3 +1,4 @@
+import AuthSuccess from "./pages/Auth/AuthSuccess";
 import { useState } from "react";
 import { Routes, Route, Navigate } from "react-router-dom";
 import "./index.css";
@@ -17,6 +18,8 @@ export default function App(){
     <Routes>
       <Route path="/login" element={<Login />} />
       <Route path="/signup" element={<Signup />} />
+<Route path="/auth-success" element={<AuthSuccess />} />
+
       <Route path="*" element={
         <>
           <div className="nav">
