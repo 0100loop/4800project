@@ -1,19 +1,69 @@
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { FiUser } from "react-icons/fi";
+import { useState } from "react";
+import "./Navbar.css";
 
 export default function Navbar() {
+  const navigate = useNavigate();
+  const [open, setOpen] = useState(false);
+
+  const name = localStorage.getItem("name");
+  const avatar = localStorage.getItem("avatar");
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    navigate("/login");
+  };
+
   return (
-    <nav className="header">
-      <div className="container" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px"}}>
-        <div className="brand"><Link to="/" className="navlink" style={{color:"#e6f0ff",textDecoration:"none"}}>ParkIt</Link></div>
-        <div className="nav">
-          <Link to="/" className="navlink">Home</Link>
-          <Link to="/map" className="navlink">Map</Link>
-          <Link to="/host" className="navlink">Host</Link>
-          <Link to="/safety" className="navlink">Safety</Link>
-          <Link to="/login" className="navlink">Login</Link>
-          <Link to="/signup" className="btn" style={{textDecoration:"none"}}>Create account</Link>
+    <nav className="navbar">
+      <div className="navbar-left">
+        <Link to="/" className="brand">ParkIt</Link>
+      </div>
+
+      <div className="navbar-center">
+        <Link to="/" className="nav-link">Home</Link>
+        <Link to="/map" className="nav-link">Map</Link>
+        <Link to="/host" className="nav-link">Host</Link>
+      </div>
+
+      <div className="navbar-right">
+        <div
+          className="profile-wrapper"
+          onClick={() => setOpen(!open)}
+        >
+          {avatar ? (
+            <img src={avatar} className="navbar-avatar" />
+          ) : (
+            <FiUser size={22} color="white" />
+          )}
         </div>
+
+        {open && (
+          <div className="profile-menu">
+            {name && <p className="menu-name">👋 {name}</p>}
+
+            <p
+              className="menu-item"
+              onClick={() => {
+                setOpen(false);
+                navigate("/profile");
+              }}
+            >
+              View Profile
+            </p>
+
+            <p
+              className="menu-item logout"
+              onClick={handleLogout}
+            >
+              Logout
+            </p>
+          </div>
+        )}
       </div>
     </nav>
   );
 }
+

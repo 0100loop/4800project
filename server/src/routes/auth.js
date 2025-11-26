@@ -114,8 +114,17 @@ router.get(
   (req, res) => {
     const token = req.user.token;
 
-    // Local frontend callback
-    res.redirect(`http://localhost:5173/auth-success?token=${token}`);
+    // Extract Google user info from passport
+    const name = req.user.name;
+    const email = req.user.email;
+    const picture = req.user.picture;
+
+    // Redirect to frontend WITH ALL INFO
+    res.redirect(
+      `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(
+        name
+      )}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(picture)}`
+    );
   }
 );
 
