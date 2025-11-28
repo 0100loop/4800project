@@ -1,67 +1,74 @@
-import AuthSuccess from "./pages/Auth/AuthSuccess";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import "./index.css";
 
-import { HomeScreen } from "./pages/HomeScreen";
-import { MapView } from "./pages/MapView";
-import { HostDashboard } from "./figma/HostDashboard";
-import { BookingConfirmation } from "./pages/BookingConfirmation";
+// All these files use NAMED exports, NOT default exports:
+import { LoginPage } from "./pages/LoginPage.tsx";
+import { HomePage } from "./pages/HomePage.tsx";
+import { MapView } from "./pages/MapView.tsx";
+import { SpotDetails } from "./pages/SpotDetails.tsx";
+import { BookingFlow } from "./pages/BookingFlow.tsx";
+import { HostDashboard } from "./pages/HostDashboard.tsx";
+import { ProfilePage } from "./pages/ProfilePage.tsx";
+import { MyBookings } from "./pages/MyBookings.tsx";
 
-import Login from "./pages/Auth/Login";
-import Signup from "./pages/Auth/Signup";
-import Profile from "./pages/Profile";
-import EditProfile from "./pages/EditProfile";
-
-import Navbar from "./components/Navbar";
+// AuthSuccess IS a default export
+import AuthSuccess from "./pages/AuthSuccess.jsx";
 
 export default function App() {
   const location = useLocation();
-  const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
 
+  const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
-  const [view, setView] = useState("home");
-  const [data, setData] = useState(null);
-  const onNavigate = (v, d) => {
-    setView(v);
-    setData(d || null);
+  const [selectedVenue, setSelectedVenue] = useState(null);
+  const [selectedSpotId, setSelectedSpotId] = useState(null);
+
+  // Google OAuth redirect handler
+  const handleGoogleLogin = () => {
+    const user = JSON.parse(localStorage.getItem("user") || "{}");
+    if (user?.role) window.location.href = "/";
+  };
+
+  // Navigation handler
+  const navigate = (view, data) => {
+    if (view === "map") window.location.href = "/map";
+    if (view === "spot") window.location.href = `/spot/${data}`;
+    if (view === "booking") window.location.href = `/booking/${data}`;
+    if (view === "host") window.location.href = "/host";
+    if (view === "bookings") window.location.href = "/bookings";
+    if (view === "profile") window.location.href = "/profile";
   };
 
   return (
     <>
-      {showNavbar && <Navbar />}
-
       <Routes>
-        {/* Auth-only screens (NO NAVBAR) */}
-        <Route path="/login" element={<Login />} />
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/auth-success" element={<AuthSuccess />} />
+        {/* Auth */}
+        <Route path="/login" element={<LoginPage />} />
 
-        {/* Profile screens */}
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/edit-profile" element={<EditProfile />} />
-
-        {/* Main app screens */}
         <Route
-          path="*"
-          element={
-            <>
-              {view === "home" && <HomeScreen onNavigate={onNavigate} />}
-              {view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
-              {view === "host" && <HostDashboard onNavigate={onNavigate} />}
-              {view === "book" && (
-                <BookingConfirmation onNavigate={onNavigate} bookingData={data} />
-              )}
-              {view === "spot" && (
-                <BookingConfirmation
-                  onNavigate={onNavigate}
-                  bookingData={{ total: 15 }}
-                />
-              )}
-            </>
-          }
+          path="/auth-success"
+          element={<AuthSuccess onLogin={handleGoogleLogin} />}
         />
+
+        {/* Main pages */}
+        <Route path="/" element={<HomePage onNavigate={navigate} />} />
+        <Route
+          path="/map"
+          element={<MapView onNavigate={navigate} selectedVenue={selectedVenue} />}
+        />
+        <Route path="/spot/:id" element={<SpotDetails onNavigate={navigate} />} />
+        <Route path="/booking/:id" element={<BookingFlow onNavigate={navigate} />} />
+
+        {/* Host pages */}
+        <Route path="/host" element={<HostDashboard onNavigate={navigate} />} />
+        <Route
+          path="/bookings"
+          element={<MyBookings onNavigate={navigate} userType="guest" />}
+        />
+
+        {/* Profile */}
+        <Route path="/profile" element={<ProfilePage onNavigate={navigate} />} />
       </Routes>
     </>
   );

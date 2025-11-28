@@ -14,7 +14,7 @@ if (!process.env.JWT_SECRET) {
 }
 
 /* ============================
-      USER SIGNUP
+         USER SIGNUP
 ============================ */
 router.post("/signup", async (req, res) => {
   try {
@@ -35,7 +35,7 @@ router.post("/signup", async (req, res) => {
       name,
       email,
       passwordHash,
-      role: role || "user",
+      role: role || "guest",
     });
 
     // Send welcome email (async)
@@ -60,7 +60,7 @@ router.post("/signup", async (req, res) => {
 });
 
 /* ============================
-      USER LOGIN
+         USER LOGIN
 ============================ */
 router.post("/login", async (req, res) => {
   try {
@@ -95,35 +95,44 @@ router.post("/login", async (req, res) => {
 });
 
 /* ============================
-    GOOGLE OAUTH (LOCALHOST)
+      GOOGLE OAUTH (LOCALHOST)
 ============================ */
 
-// Step 1: Redirect to Google with scope + choose account
+// Step 1 — Save role before Google OAuth begins
 router.get(
   "/google",
-  passport.authenticate("google", { 
+  (req, res, next) => {
+    req.session = req.session || {};
+    req.session.oauthRole = req.query.role || "guest";
+    next();
+  },
+  passport.authenticate("google", {
     scope: ["profile", "email"],
-    prompt: "select_account"   // Force account chooser
+    prompt: "select_account",
   })
 );
 
-// Step 2: Google Callback → issue token → redirect to frontend
+// Step 2 — Google redirects back to us, we issue JWT + redirect to frontend
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const token = req.user.token;
-
-    // Extract Google user info from passport
     const name = req.user.name;
     const email = req.user.email;
     const picture = req.user.picture;
 
-    // Redirect to frontend WITH ALL INFO
+    const { role } = jwt.decode(token);
+
+    // Host goes to /host, Event Goer goes to /
+    const redirectPath = role === "host" ? "host" : "";
+
     res.redirect(
       `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(
         name
-      )}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(picture)}`
+      )}&email=${encodeURIComponent(email)}&picture=${encodeURIComponent(
+        picture
+      )}&role=${role}&redirect=${redirectPath}`
     );
   }
 );

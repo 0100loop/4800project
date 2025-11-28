@@ -1,66 +1,72 @@
+// Load environment variables
+import "dotenv/config";
 import mongoose from "mongoose";
+import Spot from "./models/Spot.js";
 
-const uri = process.env.MONGO_URI;
-if (!uri) {
-  console.error("Missing MONGO_URI in env");
-  process.exit(1);
+/**
+ * SAMPLE SPOTS WITH GEO COORDINATES
+ * (LAT = north/south, LNG = east/west)
+ */
+const sampleSpots = [
+  {
+    address: "123 Maple St",
+    city: "Los Angeles",
+    price: 20,
+    host: null,
+    description: "Driveway near the stadium.",
+    location: {
+      type: "Point",
+      coordinates: [-118.2700, 34.0500], // lng, lat
+    },
+  },
+  {
+    address: "700 Stadium Dr",
+    city: "Inglewood",
+    price: 35,
+    host: null,
+    description: "5 minute walk to SoFi Stadium.",
+    location: {
+      type: "Point",
+      coordinates: [-118.3387, 33.9533],
+    },
+  },
+  {
+    address: "456 Sunset Blvd",
+    city: "Los Angeles",
+    price: 15,
+    host: null,
+    description: "Near downtown theaters.",
+    location: {
+      type: "Point",
+      coordinates: [-118.2551, 34.0522],
+    },
+  },
+];
+
+// START SCRIPT
+async function run() {
+  try {
+    if (!process.env.MONGO_URI) {
+      console.error("❌ Missing MONGO_URI in .env");
+      return;
+    }
+
+    console.log("Connecting to MongoDB...");
+    await mongoose.connect(process.env.MONGO_URI);
+
+    console.log("Clearing old spots...");
+    await Spot.deleteMany({});
+
+    console.log("Inserting sample spots...");
+    await Spot.insertMany(sampleSpots);
+
+    console.log("✅ Sample spots inserted successfully!");
+    process.exit(0);
+  } catch (err) {
+    console.error("❌ Seed error:", err);
+    process.exit(1);
+  }
 }
 
-const Spot =
-  mongoose.models.__ParkItSpot ||
-  mongoose.model(
-    "__ParkItSpot",
-    new mongoose.Schema({}, { strict: false }),
-    "spots"
-  );
+run();
 
-async function main() {
-  await mongoose.connect(uri);
-  console.log("Connected to MongoDB");
-
-  // Minimal sample docs — tweak as you like
-  const docs = [
-    {
-      title: "Driveway near Oracle Park",
-      price: 25,
-      currency: "USD",
-      address: "100 3rd St, San Francisco, CA",
-      distance: "8 min walk",
-      amenities: { bathroom: true, ev: true, shuttle: false },
-      tailgateFriendly: true,
-      overnight: false,
-      safetyScore: "A",
-      foodTips: ["Brew & Grill", "Stadium Snacks", "Café Azul"],
-      location: { type: "Point", coordinates: [-122.3893, 37.7786] }, // [lng, lat]
-    },
-    {
-      title: "Garage by Chase Center",
-      price: 18,
-      currency: "USD",
-      address: "500 Terry Francois Blvd, SF",
-      distance: "10 min walk",
-      amenities: { bathroom: false, ev: true, shuttle: true },
-      tailgateFriendly: false,
-      overnight: true,
-      safetyScore: "B+",
-      foodTips: ["Spark Social SF", "The Ramp"],
-      location: { type: "Point", coordinates: [-122.387, 37.7689] },
-    },
-  ];
-
-  // Create 2dsphere index for geo queries if missing
-  await mongoose.connection.db
-    .collection("spots")
-    .createIndex({ location: "2dsphere" });
-
-  await mongoose.connection.db.collection("spots").insertMany(docs);
-  console.log("Seeded spots:", docs.length);
-
-  await mongoose.disconnect();
-  console.log("Done");
-}
-
-main().catch((e) => {
-  console.error(e);
-  process.exit(1);
-});
