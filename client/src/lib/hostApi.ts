@@ -1,45 +1,107 @@
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
 
-export async function fetchMySpots() {
+/** ---------------------------
+ * Auth Header Helper
+ * ---------------------------- */
+function getAuthHeaders() {
   const token = localStorage.getItem("token");
+  return token
+    ? { Authorization: `Bearer ${token}` }
+    : {};
+}
 
+/** ---------------------------
+ * Types
+ * ---------------------------- */
+
+export interface HostSpot {
+  _id: string;
+  title?: string;
+  address?: string;
+  city?: string;
+  pricePerHour?: number;
+  isActive?: boolean;
+  maxVehicles?: number;
+}
+
+export interface HostBooking {
+  _id: string;
+  start: string;
+  end: string;
+  totalPrice: number;
+  status: string;
+  listingId?: {
+    _id: string;
+    title?: string;
+    address?: string;
+    city?: string;
+  };
+  userId?: {
+    name?: string;
+    email?: string;
+  };
+}
+
+/** ---------------------------
+ * Fetch Host Spots
+ * ---------------------------- */
+export async function fetchHostSpots(): Promise<HostSpot[]> {
   const res = await fetch(`${API_URL}/spots/mine`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to load spots");
+  if (!res.ok) throw new Error(data.error || "Failed to load host spots");
 
   return data;
 }
 
-export async function fetchHostBookings() {
-  const token = localStorage.getItem("token");
-
+/** ---------------------------
+ * Fetch Host Bookings
+ * ---------------------------- */
+export async function fetchHostBookings(): Promise<HostBooking[]> {
   const res = await fetch(`${API_URL}/bookings/host`, {
-    headers: { Authorization: `Bearer ${token}` }
+    headers: {
+      "Content-Type": "application/json",
+      ...getAuthHeaders(),
+    },
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to load bookings");
+  if (!res.ok) throw new Error(data.error || "Failed to load host bookings");
 
   return data;
 }
 
-export async function addNewSpot(payload: any) {
-  const token = localStorage.getItem("token");
+/** ---------------------------
+ * Create New Host Spot
+ * ---------------------------- */
+export interface CreateSpotPayload {
+  title: string;
+  address: string;
+  city?: string;
+  pricePerHour: number;
+  maxVehicles?: number;
+  description?: string;
+}
 
+export async function createHostSpot(
+  payload: CreateSpotPayload
+): Promise<HostSpot> {
   const res = await fetch(`${API_URL}/spots`, {
     method: "POST",
-    headers: { 
+    headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${token}`
+      ...getAuthHeaders(),
     },
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   });
 
   const data = await res.json();
-  if (!res.ok) throw new Error(data.error || "Failed to add spot");
+  if (!res.ok) throw new Error(data.error || "Failed to create spot");
 
   return data;
 }

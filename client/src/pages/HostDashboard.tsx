@@ -1,419 +1,410 @@
-import { useEffect, useState } from "react";
+// client/src/pages/HostDashboard.tsx
+
+import { useEffect, useMemo, useState } from "react";
 import {
-  ArrowLeft,
-  TrendingUp,
-  DollarSign,
-  Calendar,
-  Star,
-  Clock,
+  Plus,
   MapPin,
-  Edit,
-  Eye,
+  Calendar,
+  DollarSign,
   Users,
-  Home,
-  Zap,
-  Utensils,
-  Moon,
+  BarChart3,
+  CheckCircle2,
+  AlertCircle,
 } from "lucide-react";
 
-import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { Badge } from "../ui/badge";
+import { Button } from "../ui/button";
 import { Input } from "../ui/input";
 import { Label } from "../ui/label";
-import { Textarea } from "../ui/textarea";
-import { Switch } from "../ui/switch";
-import { Separator } from "../ui/separator";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "../ui/tabs";
+import { Badge } from "../ui/badge";
 
 import {
-  fetchMySpots,
+  Tabs,
+  TabsList,
+  TabsTrigger,
+  TabsContent,
+} from "../ui/tabs";
+
+// ⭐ Correct table import
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../ui/table";
+
+// ⭐ TYPE-ONLY IMPORTS (fixes HostBooking error)
+import type { HostSpot, HostBooking } from "../lib/hostApi";
+
+// ⭐ Runtime imports
+import {
+  fetchHostSpots,
   fetchHostBookings,
-  addNewSpot,
+  createHostSpot,
 } from "../lib/hostApi";
 
 interface HostDashboardProps {
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, data?: any) => void;
 }
 
-export function HostDashboard({ onNavigate }: HostDashboardProps) {
+export default function HostDashboard({ onNavigate }: HostDashboardProps) {
+  const [spots, setSpots] = useState<HostSpot[]>([]);
+  const [bookings, setBookings] = useState<HostBooking[]>([]);
   const [loading, setLoading] = useState(true);
-  const [spots, setSpots] = useState<any[]>([]);
-  const [bookings, setBookings] = useState<any[]>([]);
-  const [showAddSpot, setShowAddSpot] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const [form, setForm] = useState({
-    address: "",
-    description: "",
-    price: "",
-    spots: 1,
-    tailgate: false,
-    overnight: false,
-    ev: false,
-    bathroom: false,
-    shuttle: false,
-  });
+  const [showNewSpotForm, setShowNewSpotForm] = useState(false);
+  const [newTitle, setNewTitle] = useState("");
+  const [newAddress, setNewAddress] = useState("");
+  const [newCity, setNewCity] = useState("");
+  const [newPrice, setNewPrice] = useState("20");
+  const [newMaxVehicles, setNewMaxVehicles] = useState("2");
 
-  // ----------------------------
-  // LOAD HOST DATA (SPOTS + BOOKINGS)
-  // ----------------------------
+  // ⭐ ROLE GUARD
+  useEffect(() => {
+    const raw = localStorage.getItem("user");
+    if (!raw) return onNavigate("login");
+
+    try {
+      const user = JSON.parse(raw);
+      if (user.role !== "host") {
+        alert("Only hosts can access the Host Dashboard.");
+        return onNavigate("home");
+      }
+    } catch {
+      onNavigate("home");
+    }
+  }, [onNavigate]);
+
+  // ⭐ LOAD HOST DATA
   useEffect(() => {
     async function load() {
       try {
-        const [mySpots, hostBookings] = await Promise.all([
-          fetchMySpots(),
+        setLoading(true);
+        const [spotsData, bookingsData] = await Promise.all([
+          fetchHostSpots(),
           fetchHostBookings(),
         ]);
-
-        setSpots(mySpots);
-        setBookings(hostBookings);
-      } catch (err) {
-        console.error("HostDashboard error:", err);
+        setSpots(spotsData);
+        setBookings(bookingsData);
+      } catch (err: any) {
+        setError(err.message || "Failed to load host dashboard.");
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     }
-
     load();
   }, []);
 
-  // ----------------------------
-  // SHOW LOADING
-  // ----------------------------
-  if (loading) {
-    return (
-      <div className="min-h-screen flex justify-center items-center text-gray-600">
-        Loading dashboard…
-      </div>
-    );
-  }
-
-  // ----------------------------
-  // ADD SPOT MODE
-  // ----------------------------
-  if (showAddSpot) {
-    return (
-      <div className="min-h-screen bg-gray-50 pb-24">
-        
-        {/* HEADER */}
-        <header className="bg-white shadow-sm sticky top-0 z-30">
-          <div className="px-4 py-3 flex items-center gap-3">
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowAddSpot(false)}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-
-            <div>
-              <p className="text-[#0A2540] font-medium">Add New Spot</p>
-              <p className="text-xs text-gray-600">Create a new listing</p>
-            </div>
-          </div>
-        </header>
-
-        <div className="max-w-2xl mx-auto px-4 py-6 space-y-6">
-          
-          {/* Location */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold text-[#0A2540]">Location</h3>
-
-            <div className="mt-4 space-y-3">
-              <div>
-                <Label>Address</Label>
-                <Input
-                  placeholder="1234 Main Street"
-                  value={form.address}
-                  onChange={(e) =>
-                    setForm({ ...form, address: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <Label>Description</Label>
-                <Textarea
-                  rows={4}
-                  placeholder="Describe your parking spot…"
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({ ...form, description: e.target.value })
-                  }
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Pricing */}
-          <Card className="p-4">
-            <h3 className="text-lg font-semibold text-[#0A2540]">Pricing</h3>
-
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <div>
-                <Label>Price Per Event ($)</Label>
-                <Input
-                  type="number"
-                  value={form.price}
-                  onChange={(e) =>
-                    setForm({ ...form, price: e.target.value })
-                  }
-                />
-              </div>
-
-              <div>
-                <Label>Available Spots</Label>
-                <Input
-                  type="number"
-                  value={form.spots}
-                  onChange={(e) =>
-                    setForm({ ...form, spots: Number(e.target.value) })
-                  }
-                />
-              </div>
-            </div>
-          </Card>
-
-          {/* Features */}
-          <Card className="p-4 space-y-4">
-            <h3 className="text-lg font-semibold text-[#0A2540]">Amenities</h3>
-
-            {[
-              { key: "tailgate", label: "Tailgate Friendly", icon: Utensils },
-              { key: "overnight", label: "Overnight Allowed", icon: Moon },
-              { key: "ev", label: "EV Charging", icon: Zap },
-              { key: "bathroom", label: "Bathroom Access", icon: Home },
-              { key: "shuttle", label: "Shuttle Service", icon: Users },
-            ].map((item, i) => {
-              const Icon = item.icon;
-              return (
-                <div key={i} className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 bg-[#06B6D4]/10 rounded-lg flex items-center justify-center">
-                      <Icon className="w-5 h-5 text-[#06B6D4]" />
-                    </div>
-                    <p className="text-[#0A2540]">{item.label}</p>
-                  </div>
-
-                  <Switch
-                    checked={(form as any)[item.key]}
-                    onCheckedChange={() =>
-                      setForm({
-                        ...form,
-                        [item.key]: !(form as any)[item.key],
-                      })
-                    }
-                  />
-                </div>
-              );
-            })}
-          </Card>
-
-          {/* Submit */}
-          <div className="fixed bottom-0 left-0 right-0 bg-white border-t p-4">
-            <Button
-              className="w-full bg-[#06B6D4] hover:bg-[#0891b2]"
-              onClick={async () => {
-                try {
-                  await addNewSpot(form);
-                  alert("Spot added successfully!");
-                  setShowAddSpot(false);
-                } catch (err: any) {
-                  alert(err.message);
-                }
-              }}
-            >
-              Add Spot
-            </Button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  // ----------------------------
-  // CALCULATE EARNINGS
-  // ----------------------------
-  const totalEarnings = bookings.reduce(
-    (sum, b) => sum + (b.totalPrice || 0),
-    0
+  // ⭐ METRICS
+  const totalEarnings = useMemo(
+    () => bookings.reduce((sum, b) => sum + (Number(b.totalPrice) || 0), 0),
+    [bookings]
   );
 
+  const upcomingBookings = bookings.filter((b) => {
+    const start = new Date(b.start);
+    return start >= new Date();
+  });
+
+  const activeListings = spots.filter((s) => s.isActive !== false).length;
+
+  // ⭐ CREATE NEW SPOT
+  async function handleCreateSpot(e: React.FormEvent) {
+    e.preventDefault();
+
+    try {
+      const created = await createHostSpot({
+        title: newTitle || "Untitled Spot",
+        address: newAddress,
+        city: newCity || "Unknown",
+        pricePerHour: Number(newPrice),
+        maxVehicles: Number(newMaxVehicles),
+      });
+
+      setSpots((prev) => [created, ...prev]);
+      setShowNewSpotForm(false);
+
+      setNewTitle("");
+      setNewAddress("");
+      setNewCity("");
+      setNewPrice("20");
+      setNewMaxVehicles("2");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  }
+
+  // ⭐ LOADING
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <p className="text-gray-600">Loading host dashboard…</p>
+      </div>
+    );
+  }
+
+  // ⭐ ERROR
+  if (error) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50 gap-4">
+        <div className="flex items-center gap-2 text-red-600">
+          <AlertCircle className="w-5 h-5" />
+          <span>{error}</span>
+        </div>
+        <Button variant="outline" onClick={() => window.location.reload()}>
+          Retry
+        </Button>
+      </div>
+    );
+  }
+
+  // ⭐ FINAL RENDER
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
-
       {/* HEADER */}
       <header className="bg-white shadow-sm sticky top-0 z-30">
-        <div className="px-4 py-3 flex items-center justify-between">
-
-          <div className="flex items-center gap-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => onNavigate("home")}
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
+        <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-[#06B6D4] rounded-lg flex items-center justify-center">
+              <MapPin className="w-6 h-6 text-white" />
+            </div>
             <div>
-              <p className="text-[#0A2540] font-medium">Host Dashboard</p>
-              <p className="text-xs text-gray-600">Manage your listings</p>
+              <h1 className="text-xl font-semibold text-[#0A2540]">Host Dashboard</h1>
+              <p className="text-xs text-gray-500">
+                Manage spots, bookings, and earnings.
+              </p>
             </div>
           </div>
 
-          <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
+          <Button onClick={() => onNavigate("home")}>Back to Home</Button>
         </div>
       </header>
 
-      <div className="max-w-6xl mx-auto px-4 py-6">
-
-        {/* STATS GRID */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-
+      {/* CONTENT */}
+      <main className="max-w-6xl mx-auto px-4 py-8 space-y-8">
+        
+        {/* STATS */}
+        <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <Card className="p-4">
-            <p className="flex items-center gap-2 text-gray-600">
-              <DollarSign className="w-4 h-4" /> Earnings
-            </p>
-            <p className="text-2xl font-semibold text-[#0A2540]">
-              ${totalEarnings}
-            </p>
+            <p className="text-sm text-gray-500">Total Earnings</p>
+            <p className="text-2xl font-bold">${totalEarnings.toFixed(2)}</p>
           </Card>
 
           <Card className="p-4">
-            <p className="flex items-center gap-2 text-gray-600">
-              <Calendar className="w-4 h-4" /> Bookings
-            </p>
-            <p className="text-2xl font-semibold text-[#0A2540]">
-              {bookings.length}
-            </p>
+            <p className="text-sm text-gray-500">Upcoming Bookings</p>
+            <p className="text-2xl font-bold">{upcomingBookings.length}</p>
           </Card>
 
           <Card className="p-4">
-            <p className="flex items-center gap-2 text-gray-600">
-              <Star className="w-4 h-4" /> Rating
-            </p>
-            <p className="text-2xl font-semibold text-[#0A2540]">4.8</p>
+            <p className="text-sm text-gray-500">Active Listings</p>
+            <p className="text-2xl font-bold">{activeListings}</p>
           </Card>
 
           <Card className="p-4">
-            <p className="flex items-center gap-2 text-gray-600">
-              <Clock className="w-4 h-4" /> Response Rate
-            </p>
-            <p className="text-2xl font-semibold text-[#0A2540]">98%</p>
+            <p className="text-sm text-gray-500">Guests Served</p>
+            <p className="text-2xl font-bold">{bookings.length}</p>
           </Card>
-        </div>
-
-        {/* ADD-SPOT CTA */}
-        <Card className="p-6 mb-8 bg-gradient-to-r from-[#06B6D4] to-[#0891b2] text-white shadow-lg">
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-semibold mb-2">Add Another Spot</h3>
-              <p className="text-sm mb-4 opacity-90">
-                Hosts with 2+ listings earn up to 40% more.
-              </p>
-              <Button
-                className="bg-white text-[#06B6D4] hover:bg-gray-100"
-                onClick={() => setShowAddSpot(true)}
-              >
-                + Add New Spot
-              </Button>
-            </div>
-
-            <TrendingUp className="w-16 h-16 opacity-50 hidden md:block" />
-          </div>
-        </Card>
+        </section>
 
         {/* TABS */}
-        <Tabs defaultValue="spots" className="space-y-6">
-          <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="spots">My Spots</TabsTrigger>
-            <TabsTrigger value="bookings">Bookings</TabsTrigger>
-          </TabsList>
+        <Tabs defaultValue="listings" className="w-full">
 
-          {/* SPOTS LIST */}
-          <TabsContent value="spots" className="space-y-4">
-            {spots.map((spot, i) => (
-              <Card key={i} className="p-4 hover:shadow-md transition">
-                <div className="flex justify-between items-start mb-2">
+          <div className="flex items-center justify-between mb-4">
+            <TabsList>
+              <TabsTrigger value="listings">Listings</TabsTrigger>
+              <TabsTrigger value="bookings">Bookings</TabsTrigger>
+              <TabsTrigger value="analytics">Analytics</TabsTrigger>
+            </TabsList>
 
-                  <div className="flex-1">
-                    <p className="text-lg text-[#0A2540] font-semibold">
-                      {spot.address}
-                    </p>
+            <Button onClick={() => setShowNewSpotForm(true)}>
+              <Plus className="w-4 h-4 mr-2" />
+              New Spot
+            </Button>
+          </div>
 
-                    <div className="flex items-center gap-2 text-sm text-gray-600 mt-1">
-                      <MapPin className="w-4 h-4 text-[#06B6D4]" />
-                      {spot.city || "Unknown City"}
-                    </div>
+          {/* LISTINGS */}
+          <TabsContent value="listings">
+            <Card className="p-4 space-y-6">
 
-                    <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                      <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
-                      {spot.rating || 4.8}
-                      <span>•</span>
-                      {spot.spots || 1} spots
-                    </div>
+              {showNewSpotForm && (
+                <form
+                  onSubmit={handleCreateSpot}
+                  className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                >
+                  <div className="space-y-1">
+                    <Label>Title</Label>
+                    <Input value={newTitle} onChange={(e) => setNewTitle(e.target.value)} />
                   </div>
 
-                  <div className="text-right">
-                    <p className="text-2xl text-[#0A2540]">${spot.price}</p>
+                  <div className="space-y-1">
+                    <Label>City</Label>
+                    <Input value={newCity} onChange={(e) => setNewCity(e.target.value)} />
                   </div>
 
-                </div>
+                  <div className="space-y-1 md:col-span-2">
+                    <Label>Address</Label>
+                    <Input
+                      value={newAddress}
+                      onChange={(e) => setNewAddress(e.target.value)}
+                      required
+                    />
+                  </div>
 
-                <Separator className="my-3" />
+                  <div className="space-y-1">
+                    <Label>Price / hr</Label>
+                    <Input
+                      type="number"
+                      value={newPrice}
+                      onChange={(e) => setNewPrice(e.target.value)}
+                    />
+                  </div>
 
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm">
-                    <Edit className="w-4 h-4 mr-1" /> Edit
+                  <div className="space-y-1">
+                    <Label>Max Vehicles</Label>
+                    <Input
+                      type="number"
+                      value={newMaxVehicles}
+                      onChange={(e) => setNewMaxVehicles(e.target.value)}
+                    />
+                  </div>
+
+                  <Button className="md:col-span-2" type="submit">
+                    Save Spot
                   </Button>
+                </form>
+              )}
 
-                  <Button variant="outline" size="sm">
-                    <Eye className="w-4 h-4 mr-1" /> View
-                  </Button>
-                </div>
-              </Card>
-            ))}
+              {spots.length === 0 ? (
+                <p className="text-gray-500">No spots yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Title</TableHead>
+                      <TableHead>Address</TableHead>
+                      <TableHead>Price / hr</TableHead>
+                      <TableHead>Status</TableHead>
+                    </TableRow>
+                  </TableHeader>
+
+                  <TableBody>
+                    {spots.map((spot) => (
+                      <TableRow key={spot._id}>
+                        <TableCell>{spot.title || "Untitled"}</TableCell>
+                        <TableCell>
+                          {spot.address}
+                          {spot.city ? `, ${spot.city}` : ""}
+                        </TableCell>
+                        <TableCell>${spot.pricePerHour}</TableCell>
+                        <TableCell>
+                          <Badge>
+                            {spot.isActive !== false ? "Active" : "Inactive"}
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
           </TabsContent>
 
           {/* BOOKINGS */}
-          <TabsContent value="bookings" className="space-y-4">
-            {bookings.map((b, i) => (
-              <Card key={i} className="p-4 hover:shadow-sm transition">
+          <TabsContent value="bookings">
+            <Card className="p-4">
+              {bookings.length === 0 ? (
+                <p className="text-gray-500">No bookings yet.</p>
+              ) : (
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Guest</TableHead>
+                      <TableHead>Spot</TableHead>
+                      <TableHead>Start</TableHead>
+                      <TableHead>End</TableHead>
+                      <TableHead>Status</TableHead>
+                      <TableHead>Total</TableHead>
+                    </TableRow>
+                  </TableHeader>
 
-                <div className="flex justify-between items-start mb-2">
-                  <p className="text-lg text-[#0A2540] font-semibold">
-                    {b.userId?.name || "Guest"}
-                  </p>
+                  <TableBody>
+                    {bookings.map((b) => (
+                      <TableRow key={b._id}>
+                        <TableCell>
+                          {b.userId?.name || "Guest"}
+                          <div className="text-xs text-gray-500">
+                            {b.userId?.email}
+                          </div>
+                        </TableCell>
 
-                  <p className="text-xl text-green-700 font-semibold">
-                    +${b.totalPrice}
-                  </p>
-                </div>
+                        <TableCell>
+                          {b.listingId?.title || "Spot"}
+                          <div className="text-xs text-gray-500">
+                            {b.listingId?.address}
+                          </div>
+                        </TableCell>
 
-                <Separator className="my-3" />
+                        <TableCell>{new Date(b.start).toLocaleString()}</TableCell>
+                        <TableCell>{new Date(b.end).toLocaleString()}</TableCell>
 
-                <div className="space-y-2 text-sm text-gray-700">
-                  <div className="flex items-center gap-2">
-                    <Calendar className="w-4 h-4 text-[#06B6D4]" />
-                    {new Date(b.start).toLocaleDateString()}
-                  </div>
+                        <TableCell>
+                          <Badge>{b.status}</Badge>
+                        </TableCell>
 
-                  <div className="flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-[#06B6D4]" />
-                    {b.listingId?.address}
-                  </div>
-
-                  <div className="flex items-center gap-2">
-                    <Car className="w-4 h-4 text-[#06B6D4]" />
-                    {b.vehicle || "Unknown vehicle"}
-                  </div>
-                </div>
-
-              </Card>
-            ))}
+                        <TableCell>${b.totalPrice.toFixed(2)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              )}
+            </Card>
           </TabsContent>
 
+          {/* ANALYTICS */}
+          <TabsContent value="analytics">
+            <Card className="p-6 flex flex-col gap-4">
+              <div className="flex items-center gap-2">
+                <BarChart3 className="w-5 h-5 text-[#06B6D4]" />
+                <h2 className="text-lg font-semibold text-[#0A2540]">Analytics</h2>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <Card className="p-4">
+                  <p className="text-xs text-gray-500">Earnings (Total)</p>
+                  <p className="text-xl font-semibold text-[#0A2540]">
+                    ${totalEarnings.toFixed(2)}
+                  </p>
+                </Card>
+
+                <Card className="p-4">
+                  <p className="text-xs text-gray-500">Bookings (Total)</p>
+                  <p className="text-xl font-semibold text-[#0A2540]">
+                    {bookings.length}
+                  </p>
+                </Card>
+
+                <Card className="p-4">
+                  <p className="text-xs text-gray-500">Active Listings</p>
+                  <p className="text-xl font-semibold text-[#0A2540]">
+                    {activeListings}
+                  </p>
+                </Card>
+              </div>
+
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                <span>
+                  More advanced analytics will be added after deployment.
+                </span>
+              </div>
+            </Card>
+          </TabsContent>
         </Tabs>
-      </div>
+      </main>
     </div>
   );
 }
+
