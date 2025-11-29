@@ -1,0 +1,87 @@
+.navbar {
+  width: 100%;
+  background: #052342;
+  padding: 14px 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+}
+
+.navbar-left .brand {
+  color: white;
+  font-size: 22px;
+  font-weight: bold;
+  text-decoration: none;
+}
+
+.navbar-center {
+  display: flex;
+  gap: 20px;
+}
+
+.nav-link {
+  color: white;
+  padding: 6px 16px;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.3);
+  text-decoration: none;
+}
+
+.navbar-right {
+  position: relative;
+}
+
+.profile-wrapper {
+  padding: 6px;
+  background: rgba(255,255,255,0.25);
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.navbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+}
+
+/* Dropdown container */
+.profile-menu {
+  position: absolute;
+  top: 50px;
+  right: 0;
+  width: 180px;
+  padding: 15px;
+  background: white; /* dropdown background */
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+  z-index: 99;
+  color: #333; /* default text color for all children */
+}
+
+/* Greeting / menu name */
+.menu-name {
+  font-weight: bold;
+  margin: 0 0 10px 0;
+  pointer-events: none;
+  color: #333; /* ensure it is dark */
+  font-size: 14px;
+}
+
+/* Actionable items */
+.menu-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s;
+  color: #333; /* dark text */
+}
+
+.menu-item:hover {
+  background-color: rgba(0,0,0,0.05);
+}
+
+/* Logout in red */
+.logout {
+  color: red;
+}

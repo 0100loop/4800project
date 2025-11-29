@@ -16,19 +16,27 @@ export default function Login() {
   const onChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
   async function onSubmit(e) {
-    e.preventDefault();
-    setErr('');
-    setLoading(true);
-    try {
-      const data = await apiFetch('/api/auth/login', { method: 'POST', body: form });
-      setToken(data.token);
-      nav('/');
-    } catch (error) {
-      setErr(error.message || 'Invalid email or password');
-    } finally {
-      setLoading(false);
+  e.preventDefault();
+  setErr('');
+  setLoading(true);
+  try {
+    const data = await apiFetch('/api/auth/login', { method: 'POST', body: form });
+    setToken(data.token);
+
+    // store user info in localStorage for Navbar
+    if (data.user) {
+      localStorage.setItem('name', data.user.name || '');
+      localStorage.setItem('avatar', data.user.avatar || '');
     }
+
+    nav('/'); // redirect to home
+  } catch (error) {
+    setErr(error.message || 'Invalid email or password');
+  } finally {
+    setLoading(false);
   }
+}
+
 
   return (
     <div className="min-h-screen flex">

@@ -1,18 +1,44 @@
-import { Link } from "react-router-dom";
+import { FiUser } from "react-icons/fi";
+import { useState } from "react";
+import "./Navbar.css";
 
-export default function Navbar() {
+export default function Navbar({ onNavigate }) {
+  const [open, setOpen] = useState(false);
+  const name = localStorage.getItem("name");
+  const avatar = localStorage.getItem("avatar");
+
+  const handleLogout = () => {
+    localStorage.clear();
+    sessionStorage.clear();
+    onNavigate("home");
+  };
+
   return (
-    <nav className="header">
-      <div className="container" style={{display:"flex",alignItems:"center",justifyContent:"space-between",padding:"10px 16px"}}>
-        <div className="brand"><Link to="/" className="navlink" style={{color:"#e6f0ff",textDecoration:"none"}}>ParkIt</Link></div>
-        <div className="nav">
-          <Link to="/" className="navlink">Home</Link>
-          <Link to="/map" className="navlink">Map</Link>
-          <Link to="/host" className="navlink">Host</Link>
-          <Link to="/safety" className="navlink">Safety</Link>
-          <Link to="/login" className="navlink">Login</Link>
-          <Link to="/signup" className="btn" style={{textDecoration:"none"}}>Create account</Link>
+    <nav className="navbar">
+      <div className="navbar-left">
+        <a href="#" className="brand" onClick={e => { e.preventDefault(); onNavigate("home"); }}>
+          ParkIt
+        </a>
+      </div>
+
+      <div className="navbar-center">
+        <a href="#" className="nav-link" onClick={e => { e.preventDefault(); onNavigate("home"); }}>Home</a>
+        <a href="#" className="nav-link" onClick={e => { e.preventDefault(); onNavigate("map"); }}>Map</a>
+        <a href="#" className="nav-link" onClick={e => { e.preventDefault(); onNavigate("host"); }}>Host</a>
+      </div>
+
+      <div className="navbar-right">
+        <div className="profile-wrapper" onClick={() => setOpen(!open)}>
+          {avatar ? <img src={avatar} className="navbar-avatar" alt="avatar" /> : <FiUser size={22} color="white" />}
         </div>
+
+        {open && (
+          <div className="profile-menu">
+            {name && <div className="menu-name">👋 {name}</div>}
+            <div className="menu-item" onClick={() => { setOpen(false); onNavigate("profile"); }}>View Profile</div>
+            <div className="menu-item logout" onClick={handleLogout}>Logout</div>
+          </div>
+        )}
       </div>
     </nav>
   );
