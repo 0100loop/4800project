@@ -12,18 +12,18 @@ import {
   AlertCircle,
 } from "lucide-react";
 
-import { Card } from "../ui/card";
-import { Button } from "../ui/button";
-import { Input } from "../ui/input";
-import { Label } from "../ui/label";
-import { Badge } from "../ui/badge";
+import { Card } from "../ui/card.tsx";
+import { Button } from "../ui/button.tsx";
+import { Input } from "../ui/input.tsx";
+import { Label } from "../ui/label.tsx";
+import { Badge } from "../ui/badge.tsx";
 
 import {
   Tabs,
   TabsList,
   TabsTrigger,
   TabsContent,
-} from "../ui/tabs";
+} from "../ui/tabs.tsx";
 
 // ⭐ Correct table import
 import {
@@ -33,17 +33,17 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "../ui/table";
+} from "../ui/table.tsx";
 
 // ⭐ TYPE-ONLY IMPORTS (fixes HostBooking error)
-import type { HostSpot, HostBooking } from "../lib/hostApi";
+import type { HostSpot, HostBooking } from "../lib/hostApi.ts";
 
 // ⭐ Runtime imports
 import {
   fetchHostSpots,
   fetchHostBookings,
   createHostSpot,
-} from "../lib/hostApi";
+} from "../lib/hostApi.ts";
 
 interface HostDashboardProps {
   onNavigate: (view: string, data?: any) => void;

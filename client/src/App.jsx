@@ -8,7 +8,7 @@ import { HomePage } from "./pages/HomePage.tsx";
 import { MapView } from "./pages/MapView.tsx";
 import { SpotDetails } from "./pages/SpotDetails.tsx";
 import { BookingFlow } from "./pages/BookingFlow.tsx";
-import { HostDashboard } from "./pages/HostDashboard.tsx";
+import  HostDashboard  from "./pages/HostDashboard.tsx";
 import { ProfilePage } from "./pages/ProfilePage.tsx";
 import { MyBookings } from "./pages/MyBookings.tsx";
 
