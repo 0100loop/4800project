@@ -38,7 +38,7 @@ const Toggle = ({ enabled, setEnabled }: { enabled: boolean; setEnabled: (v: boo
 };
 
 interface HostDashboardProps {
-  onNavigate: (view: string) => void;
+  onNavigate: (view: string, data?: any) => void;
 }
 
 interface ImportMeta {
@@ -417,7 +417,11 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
 
           <div className="space-y-3">
             {mySpots.map((spot) => (
-              <Card key={spot.id} className="hover:shadow-md transition-shadow">
+              <Card 
+                key={spot.id} 
+                className="hover:shadow-md transition-shadow cursor-pointer"
+                onClick={() => onNavigate('spotManagement', { spot })}
+              >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">
                     <div className="bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg p-3 flex items-center justify-center flex-shrink-0">

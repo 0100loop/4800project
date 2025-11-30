@@ -193,7 +193,7 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
       style={positions[index]}
       onClick={() => {
         setSelectedSpot(spot.id);  // optional, keeps marker highlight
-        onNavigate('spot', { spot });  // navigate to BookingConfirmation with this spot
+        onNavigate("confirm", { spot: selectedSpot, total: spot.price});
       }}
     >
       <div className={`

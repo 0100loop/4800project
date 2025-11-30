@@ -29,9 +29,51 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
   const [phone, setPhone] = useState('');
   const [vehicleInfo, setVehicleInfo] = useState('');
 
-  const handleConfirmBooking = () => {
+const handleConfirmBooking = async () => {
+  try {
+    const token = localStorage.getItem("token");
+    console.log("TOKEN:", token);
+    if (!token) {
+      alert("You must be logged in to complete a booking.");
+      return;
+    }
+
+    const start = `${selectedDate}T${selectedTime}`;
+    const end = `${selectedDate}T${String(
+      Number(selectedTime.split(":")[0]) + 2
+    ).padStart(2, "0")}:${selectedTime.split(":")[1]}`;
+
+    const res = await fetch("http://localhost:5000/api/bookings", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        spotId: bookingData?.spot?._id,
+        start,
+        end,
+      }),
+    });
+
+    const data = await res.json();
+
+    if (!res.ok) {
+      console.error(data);
+      alert(data.error || "Booking failed");
+      return;
+    }
+
+    // Success = show confirmation UI
     setIsConfirmed(true);
-  };
+
+  } catch (err) {
+    console.error(err);
+    alert("Something went wrong.");
+  }
+};
+
+
 
   if (isConfirmed) {
     return (

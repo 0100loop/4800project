@@ -8,7 +8,9 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-      callbackURL: "/api/auth/google/callback",
+
+      // MUST be full URL in local development
+      callbackURL: "http://localhost:5000/api/auth/google/callback",
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
@@ -16,6 +18,7 @@ passport.use(
 
         let user = await User.findOne({ email });
 
+        // Create a user if none exists
         if (!user) {
           user = await User.create({
             name: profile.displayName,
@@ -25,15 +28,22 @@ passport.use(
           });
         }
 
+        // FIX: include role in token (required for auth("user"))
         const token = jwt.sign(
-          { id: user._id, email: user.email },
+          {
+            id: user._id,
+            email: user.email,
+            role: user.role,
+          },
           process.env.JWT_SECRET,
           { expiresIn: "7d" }
         );
 
-        return done(null, { user, token });
+        // Only return the token to the callback
+        return done(null, { token });
+
       } catch (err) {
-        done(err, null);
+        return done(err, null);
       }
     }
   )

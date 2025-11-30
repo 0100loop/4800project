@@ -9,6 +9,7 @@ import { HostDashboard } from "./figma/HostDashboard";
 import { BookingConfirmation } from "./figma/BookingConfirmation";
 import { MyBookings } from "./figma/MyBookings";
 import { UserProfile } from "./figma/UserProfile";
+import { SpotManagement } from "./figma/SpotManagement";
 
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -52,13 +53,13 @@ const onNavigate = (v, d) => {
               {view === "host" && <HostDashboard onNavigate={onNavigate} />}
               {view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
               {view === "spot" && (
-  <BookingConfirmation
-    onNavigate={onNavigate}
-    bookingData={data} // ✅ use data directly
-  />
-)}
+                <BookingConfirmation
+                  onNavigate={onNavigate}
+                  bookingData={data} 
+                />)}
               {view === "bookings" && <MyBookings onNavigate={onNavigate} />}
               {view === "profile" && <UserProfile onNavigate={onNavigate} />}
+              {view === "spotManagement" && <SpotManagement onNavigate={onNavigate} spotData={data} />}
             </>
           }
         />
