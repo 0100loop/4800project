@@ -420,7 +420,9 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
               <Card 
                 key={spot.id} 
                 className="hover:shadow-md transition-shadow cursor-pointer"
-                onClick={() => onNavigate('spotManagement', { spot })}
+                onClick={() => {
+  onNavigate('spotManagement', spot);
+}}
               >
                 <CardContent className="p-4">
                   <div className="flex items-start gap-4">

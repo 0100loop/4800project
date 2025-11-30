@@ -3,7 +3,7 @@ import auth from "../middleware/auth.js"
 
 const SpotSchema = new mongoose.Schema({
   title: { type: String, required: true },
-  pricePerHour: { type: Number, required: true, min: 0 },
+  pricePerEvent: { type: Number, required: true, min: 0 },
   address: { type: String, required: true },
   bathroom: { type: Boolean, default: false },
   evCharging: { type: Boolean, default: false },

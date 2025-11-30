@@ -10,6 +10,8 @@ import { BookingConfirmation } from "./figma/BookingConfirmation";
 import { MyBookings } from "./figma/MyBookings";
 import { UserProfile } from "./figma/UserProfile";
 import { SpotManagement } from "./figma/SpotManagement";
+import {CreateListing} from "./figma/CreateListing";
+import { apiFetch } from "./lib/api.js";
 
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -49,17 +51,30 @@ const onNavigate = (v, d) => {
           element={
             <>
               {view === "home" && <HomeScreen onNavigate={onNavigate} />}
-              {view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
-              {view === "host" && <HostDashboard onNavigate={onNavigate} />}
-              {view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
-              {view === "spot" && (
-                <BookingConfirmation
-                  onNavigate={onNavigate}
-                  bookingData={data} 
-                />)}
-              {view === "bookings" && <MyBookings onNavigate={onNavigate} />}
-              {view === "profile" && <UserProfile onNavigate={onNavigate} />}
-              {view === "spotManagement" && <SpotManagement onNavigate={onNavigate} spotData={data} />}
+{view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
+{view === "host" && <HostDashboard onNavigate={onNavigate} />}
+{view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
+{view === "spot" && (
+  <BookingConfirmation
+    onNavigate={onNavigate}
+    bookingData={data} 
+  />
+)}
+{view === "bookings" && <MyBookings onNavigate={onNavigate} />}
+{view === "profile" && <UserProfile onNavigate={onNavigate} />}
+{view === "spotManagement" && (
+  <SpotManagement 
+    onNavigate={onNavigate} 
+    spotData={data?.spotData || data}
+    apiFetch={apiFetch}
+  />
+)}
+{view === "createListing" && (
+  <CreateListing 
+    spotId={data?.spotId || data?.id}  // Handle both structures
+    onBack={() => onNavigate("spotManagement", data?.spotData || data)}  // Pass correct data back
+  />
+)}
             </>
           }
         />

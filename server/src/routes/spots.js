@@ -124,4 +124,23 @@ const { lat, lon } = geoData[0];
   }
 });
 
+// Create a new listing
+router.post("/", auth("user"), async (req, res) => {
+  try {
+    const data = req.body;
+
+    const spot = await Spot.create({
+      host: req.user.id, // Comes from JWT
+      ...data,
+      isActive: true
+    });
+
+    res.json({ message: "Spot created", spot });
+
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ error: e.message });
+  }
+});
+
 export default router;
