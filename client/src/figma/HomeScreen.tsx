@@ -161,6 +161,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
               View Map
             </Button>
             <Button 
+              onClick={() => onNavigate('bookings')}
               variant="outline" 
               className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-full px-6 whitespace-nowrap backdrop-blur"
             >

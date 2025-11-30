@@ -6,7 +6,7 @@ import { Separator } from './ui/separator.js';
 import { Checkbox } from './ui/checkbox.js';
 import { Label } from './ui/label.js';
 import { useState } from 'react';
-import { ImageWithFallback } from './figma/ImageWithFallback.js';
+//import { ImageWithFallback } from './figma/ImageWithFallback.js';
 
 interface SpotDetailsProps {
   onNavigate: (view: string, data?: any) => void;

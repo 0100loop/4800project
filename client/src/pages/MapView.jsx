@@ -201,19 +201,19 @@ useEffect(() => {
           <p className="text-gray-600 text-sm mt-1">Sorted by distance</p>
         </div>
         <div className="p-4 space-y-3">
-          {parkingSpots.map(s=>(
-            <Card
-              key={s._id || s.id || `${s.lat}-${s.lng}`}
-              className={`cursor-pointer transition-all ${
-                selected === s.id
-                  ? "border-[#06B6D4] border-2 shadow-md"
-                  : "border-gray-200 hover:shadow-md"
-              }`}
-              onClick={() => {
-                setSelected(s._id || s.id);
-                setMapCenter([s.location.coordinates[1], s.location.coordinates[0]]); // [lat, lng]
-              }}
-            >
+{parkingSpots.map(s => (
+  <Card
+    key={s._id || s.id || `${s.lat}-${s.lng}`}
+    className={`cursor-pointer transition-all ${
+      selected === s.id ? "border-[#06B6D4] border-2 shadow-md" : "border-gray-200 hover:shadow-md"
+    }`}
+    onClick={() => {
+      setSelected(s._id || s.id);
+      setMapCenter([s.location.coordinates[1], s.location.coordinates[0]]);
+      // Navigate to booking confirmation
+      onNavigate('spot', { bookingData: s });
+    }}
+  >
               <CardContent className="p-4">
                 <div className="flex items-start gap-3">
                   <div className="w-20 h-20 bg-gradient-to-br from-[#0A2540] to-[#134E6F] rounded-lg flex items-center justify-center">

@@ -78,60 +78,6 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
     onNavigate('map', { venue });
   };
 
-  /*const parkingSpots = [
-    {
-      id: 1,
-      lat: 34.0430,
-      lng: -118.2673,
-      price: 15,
-      distance: '0.3 mi',
-      walkTime: '6 min',
-      rating: 4.8,
-      host: 'Mike T.',
-      amenities: ['EV Charging', 'Bathroom'],
-      tailgateFriendly: true,
-      safetyScore: 95
-    },
-    {
-      id: 2,
-      lat: 34.0445,
-      lng: -118.2650,
-      price: 20,
-      distance: '0.4 mi',
-      walkTime: '8 min',
-      rating: 4.9,
-      host: 'Sarah L.',
-      amenities: ['Covered', 'Shuttle'],
-      tailgateFriendly: false,
-      safetyScore: 98
-    },
-    {
-      id: 3,
-      lat: 34.0410,
-      lng: -118.2690,
-      price: 12,
-      distance: '0.5 mi',
-      walkTime: '10 min',
-      rating: 4.6,
-      host: 'John D.',
-      amenities: ['Bathroom', 'Food Nearby'],
-      tailgateFriendly: true,
-      safetyScore: 92
-    },
-    {
-      id: 4,
-      lat: 34.0455,
-      lng: -118.2685,
-      price: 18,
-      distance: '0.2 mi',
-      walkTime: '4 min',
-      rating: 5.0,
-      host: 'Emma R.',
-      amenities: ['EV Charging', 'Covered', 'Bathroom'],
-      tailgateFriendly: false,
-      safetyScore: 99
-    }
-  ];*/
   useEffect(() => {
   async function fetchListings() {
     try {
@@ -232,35 +178,39 @@ export function MapView({ onNavigate, viewData }: MapViewProps) {
             </div>
 
             {/* Parking Spot Markers */}
-            {parkingSpots.map((spot, index) => {
-              const positions = [
-                { top: '35%', left: '60%' },
-                { top: '45%', left: '70%' },
-                { top: '30%', left: '40%' },
-                { top: '55%', left: '55%' }
-              ];
-              
-              return (
-                <div
-                  key={spot.id}
-                  className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-20"
-                  style={positions[index]}
-                  onClick={() => setSelectedSpot(spot.id)}
-                >
-                  <div className={`
-                    rounded-full shadow-lg transition-all
-                    ${selectedSpot === spot.id 
-                      ? 'bg-[#06B6D4] text-white scale-110' 
-                      : 'bg-white text-[#0A2540] hover:scale-105'
-                    }
-                    px-3 py-1.5 flex items-center gap-1 border-2 border-white
-                  `}>
-                    <DollarSign className="w-3 h-3" />
-                    <span className="font-medium">{spot.price}</span>
-                  </div>
-                </div>
-              );
-            })}
+ {parkingSpots.map((spot, index) => {
+  const positions = [
+    { top: '35%', left: '60%' },
+    { top: '45%', left: '70%' },
+    { top: '30%', left: '40%' },
+    { top: '55%', left: '55%' }
+  ];
+
+  return (
+    <div
+      key={spot.id}
+      className="absolute transform -translate-x-1/2 -translate-y-1/2 cursor-pointer z-20"
+      style={positions[index]}
+      onClick={() => {
+        setSelectedSpot(spot.id);  // optional, keeps marker highlight
+        onNavigate('spot', { spot });  // navigate to BookingConfirmation with this spot
+      }}
+    >
+      <div className={`
+        rounded-full shadow-lg transition-all
+        ${selectedSpot === spot.id 
+          ? 'bg-[#06B6D4] text-white scale-110' 
+          : 'bg-white text-[#0A2540] hover:scale-105'
+        }
+        px-3 py-1.5 flex items-center gap-1 border-2 border-white
+      `}>
+        <DollarSign className="w-3 h-3" />
+        <span className="font-medium">{spot.price}</span>
+      </div>
+    </div>
+  );
+})}
+
 
             {/* Distance circles */}
             <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">

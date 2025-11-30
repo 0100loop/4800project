@@ -3,10 +3,12 @@ import { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import "./index.css";
 
-import { HomeScreen } from "./pages/HomeScreen";
+import { HomeScreen } from "./figma/HomeScreen";
 import { MapView } from "./pages/MapView";
 import { HostDashboard } from "./figma/HostDashboard";
-import { BookingConfirmation } from "./pages/BookingConfirmation";
+import { BookingConfirmation } from "./figma/BookingConfirmation";
+import { MyBookings } from "./figma/MyBookings";
+import { UserProfile } from "./figma/UserProfile";
 
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -24,44 +26,39 @@ export default function App() {
   const [view, setView] = useState("home");
   const [data, setData] = useState(null);
 
-  const onNavigate = (v, d) => {
-    setView(v);
-    setData(d || null);
-  };
+const onNavigate = (v, d) => {
+  setView(v);
+  setData(d || null);
+};
 
   return (
     <>
-      {/* 🔥 Navbar with working navigation */}
+      {/* Navbar */}
       {showNavbar && <Navbar onNavigate={onNavigate} />}
 
       <Routes>
-        {/* Auth routes */}
+        {/* Auth pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/auth-success" element={<AuthSuccess />} />
 
-        {/* Everything else uses your view-based navigation */}
+        {/* Main view-based navigation */}
         <Route
           path="*"
           element={
             <>
               {view === "home" && <HomeScreen onNavigate={onNavigate} />}
-              {view === "map" && (
-                <MapView onNavigate={onNavigate} viewData={data} />
-              )}
+              {view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
               {view === "host" && <HostDashboard onNavigate={onNavigate} />}
-              {view === "book" && (
-                <BookingConfirmation
-                  onNavigate={onNavigate}
-                  bookingData={data}
-                />
-              )}
+              {view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
               {view === "spot" && (
-                <BookingConfirmation
-                  onNavigate={onNavigate}
-                  bookingData={{ total: 15 }}
-                />
-              )}
+  <BookingConfirmation
+    onNavigate={onNavigate}
+    bookingData={data} // ✅ use data directly
+  />
+)}
+              {view === "bookings" && <MyBookings onNavigate={onNavigate} />}
+              {view === "profile" && <UserProfile onNavigate={onNavigate} />}
             </>
           }
         />
