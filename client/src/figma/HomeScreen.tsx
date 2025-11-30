@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Search, MapPin, Calendar, TrendingUp, X } from 'lucide-react';
 import { Input } from './ui/input.js';
 import { Button } from './ui/button.js';
@@ -13,6 +13,44 @@ interface HomeScreenProps {
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
+  const [featuredEvents, setFeaturedEvents] = useState<any[]>([]);
+
+  useEffect(() => {
+  const fetchEvents = async () => {
+    try {
+      const res = await fetch(
+        `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${
+          import.meta.env.VITE_TICKETMASTER_API_KEY
+        }&city=Los%20Angeles`
+      );
+
+      const data = await res.json();
+      const events = data._embedded?.events || [];
+
+      // convert Ticketmaster -> your card format
+      const normalized = events.slice(0, 4).map((e: any) => ({
+        id: e.id,
+        name: e.name,
+        venue: e._embedded?.venues?.[0]?.name || "Unknown Venue",
+        date: e.dates?.start?.localDate || "",
+        image:
+          e.images?.find((img: any) => img.width > 900)?.url ||
+          "https://via.placeholder.com/800x400",
+        spotsAvailable: Math.floor(Math.random() * 50) + 10, // fake  
+        priceFrom:
+          e.priceRanges?.[0]?.min || Math.floor(Math.random() * 30) + 10,
+      }));
+
+      setFeaturedEvents(normalized);
+    } catch (err) {
+      console.error("Fetch failed", err);
+    }
+  };
+
+  fetchEvents();
+}, []);
+
+  
 
   const allVenues = [
     { id: 1, name: 'Crypto.com Arena', city: 'Los Angeles, CA', type: 'Arena' },
@@ -27,7 +65,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     { id: 10, name: 'Greek Theatre', city: 'Los Angeles, CA', type: 'Theater' },
   ];
 
-  const featuredEvents = [
+  /*const featuredEvents = [
     {
       id: 1,
       name: 'Lakers vs Warriors',
@@ -65,6 +103,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
       priceFrom: 22
     }
   ];
+  */
 
   const filteredVenues = searchQuery.trim()
     ? allVenues.filter(venue =>
@@ -183,6 +222,9 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         </div>
 
         <div className="grid md:grid-cols-2 gap-4">
+          {featuredEvents.length === 0 && (
+  <p className="text-gray-600">Loading events...</p>
+)}
           {featuredEvents.map((event) => (
             <Card 
               key={event.id} 
