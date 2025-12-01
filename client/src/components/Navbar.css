@@ -1,4 +1,4 @@
-.navbar {
+/*.navbar {
   width: 100%;
   background: #052342;
   padding: 14px 32px;
@@ -6,7 +6,9 @@
   align-items: center;
   justify-content: space-between;
   position: relative;
-}
+} 
+*/
+
 
 .navbar-left .brand {
   color: white;

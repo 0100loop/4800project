@@ -38,10 +38,10 @@ const onNavigate = (v, d) => {
 
   return (
     <>
-      {/* Navbar */}
-      {showNavbar && <Navbar onNavigate={onNavigate} />}
+    {showNavbar && <Navbar onNavigate={onNavigate} />}
 
       <Routes>
+        
         {/* Auth pages */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />

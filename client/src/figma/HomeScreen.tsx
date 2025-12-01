@@ -103,144 +103,188 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white">
+    <div className="max-w-7xl mx-auto px-4 py-8">
       {/* Hero Section */}
-      <div className="bg-[#0A2540] text-white px-4 pt-8 pb-12">
-        <div className="max-w-4xl mx-auto">
-          <h1 className="text-white mb-2">Find Your Spot</h1>
-          <p className="text-cyan-100 mb-6">Park with locals near your favorite venues</p>
-          
-          {/* Search Bar */}
-          <div className="relative">
-            <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
-            <Input
-              placeholder="Search venues, events, or locations..."
-              className="pl-12 pr-12 py-6 rounded-xl border-0 bg-white shadow-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#06B6D4] focus:outline-none"
-              value={searchQuery}
-              onChange={handleSearchChange}
-              onFocus={handleSearchFocus}
-            />
-            {searchQuery && (
-              <button
-                onClick={clearSearch}
-                className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600 z-10"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
-            
-            {/* Search Results Dropdown */}
-            {showSearchResults && filteredVenues.length > 0 && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-2xl overflow-hidden z-50 max-h-96 overflow-y-auto">
+      <div className="mb-8">
+        <h1 className="text-4xl text-[#0A2540] mb-2">Find Your Perfect Spot</h1>
+        <p className="text-gray-600">
+          Discover convenient parking near stadiums, theaters, and events
+        </p>
+      </div>
+
+      {/* Search Bar */}
+      <div className="relative mb-8">
+        <div className="relative">
+          <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+          <Input
+            placeholder="Search for venues or events..."
+            className="pl-12 pr-4 py-6 text-lg text-gray-400"
+            value={searchQuery}
+            onChange={(e) => {
+              setSearchQuery(e.target.value);
+              setShowSearchResults(e.target.value.length > 0);
+            }}
+            onFocus={() => setShowSearchResults(searchQuery.length > 0)}
+          />
+        </div>
+
+        {/* Search Results Dropdown */}
+        {showSearchResults && searchQuery && (
+          <Card className="mt-2 w-full max-h-96 overflow-y-auto shadow-lg z-50">
+            {filteredVenues.length > 0 ? (
+              <div className="p-2">
                 {filteredVenues.map((venue) => (
                   <button
                     key={venue.id}
                     onClick={() => handleVenueSelect(venue)}
-                    className="w-full px-4 py-3 hover:bg-gray-50 flex items-start gap-3 text-left border-b border-gray-100 last:border-b-0 transition-colors"
+                    className="w-full flex items-center gap-3 p-3 hover:bg-gray-100 rounded-lg transition-colors text-left"
                   >
-                    <MapPin className="w-5 h-5 text-[#06B6D4] flex-shrink-0 mt-0.5" />
-                    <div className="flex-1 min-w-0">
-                      <p className="text-[#0A2540]">{venue.name}</p>
-                      <p className="text-sm text-gray-600">{venue.city} • {venue.type}</p>
+                    <MapPin className="w-5 h-5 text-[#06B6D4] flex-shrink-0" />
+                    <div>
+                      <div className="text-[#0A2540]">{venue.name}</div>
+                      <div className="text-sm text-gray-600">
+                        {venue.city} • {venue.type}
+                      </div>
                     </div>
                   </button>
                 ))}
               </div>
+            ) : (
+              <div className="p-4 text-center text-gray-500">No venues found</div>
             )}
-            
-            {showSearchResults && searchQuery && filteredVenues.length === 0 && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-2xl p-6 z-50 text-center">
-                <p className="text-gray-600">No venues found matching "{searchQuery}"</p>
-                <p className="text-sm text-gray-500 mt-2">Try searching for popular stadiums or arenas</p>
-              </div>
-            )}
-          </div>
+          </Card>
+        )}
+      </div>
 
-          {/* Quick Actions */}
-          <div className="flex gap-3 mt-6 overflow-x-auto pb-2">
-            <Button 
-              onClick={() => onNavigate('map')}
-              className="bg-[#06B6D4] hover:bg-[#0891B2] text-white rounded-full px-6 whitespace-nowrap"
-            >
-              <MapPin className="w-4 h-4 mr-2" />
-              View Map
-            </Button>
-            <Button 
-              onClick={() => onNavigate('bookings')}
-              variant="outline" 
-              className="bg-white/10 border-white/20 text-white hover:bg-white/20 rounded-full px-6 whitespace-nowrap backdrop-blur"
-            >
-              <Calendar className="w-4 h-4 mr-2" />
-              My Bookings
-            </Button>
-          </div>
-        </div>
+      {/* Buttons BELOW the search/hero area */}
+      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-12 pt-8">
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 rounded-md text-sm font-medium transition-all border-gray-300"
+          onClick={() => onNavigate("map")}
+        >
+          <MapPin className="w-6 h-6 text-[#06B6D4]" />
+          <span className="text-[#000]">Map View</span>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 rounded-md text-sm font-medium transition-all border-gray-300"
+          onClick={() => onNavigate("host")}
+        >
+          <TrendingUp className="w-6 h-6 text-[#06B6D4]" />
+          <span className="text-[#000]">Host</span>
+        </Button>
+
+        <Button
+          variant="outline"
+          className="w-full h-24 flex flex-col items-center justify-center gap-2 border-2 rounded-md text-sm font-medium transition-all border-gray-300"
+          onClick={() => onNavigate("bookings")}
+        >
+          <Calendar className="w-6 h-6 text-[#06B6D4]" />
+          <span className="text-[#000]">My Bookings</span>
+        </Button>
       </div>
 
       {/* Featured Events */}
-      <div className="max-w-4xl mx-auto px-4 py-8">
-        <div className="flex items-center justify-between mb-6">
-          <div>
-            <h2 className="text-[#0A2540]">Popular Events</h2>
-            <p className="text-gray-600 mt-1">Find parking near these events</p>
-          </div>
-          <TrendingUp className="w-5 h-5 text-[#06B6D4]" />
+      <div className="mb-8">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-2xl text-[#0A2540]">Featured Events</h2>
+          <button className="inline-flex items-center justify-center gap-2 rounded-md text-sm font-medium h-9 px-4 py-2 text-[#06B6D4] hover:bg-accent hover:text-accent-foreground">
+            View All
+          </button>
         </div>
 
-        <div className="grid md:grid-cols-2 gap-4">
-          {featuredEvents.length === 0 && (
-  <p className="text-gray-600">Loading events...</p>
-)}
-          {featuredEvents.map((event) => (
-            <Card 
-              key={event.id} 
-              className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-gray-200"
-              onClick={() => onNavigate('map', { event, venue: allVenues.find(v => v.name === event.venue) })}
-            >
-              <div className="relative h-40">
-                <ImageWithFallback
-                  src={event.image}
-                  alt={event.name}
-                  className="w-full h-full object-cover"
-                />
-                <div className="absolute top-3 right-3">
-                  <Badge className="bg-[#06B6D4] text-white border-0">
-                    {event.spotsAvailable} spots
-                  </Badge>
-                </div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {/* Example Event Card */}
+          <div className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
+            <div className="h-48 relative overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-11?w=800&h=600&fit=crop"
+                alt="Lakers vs Warriors"
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute top-4 right-4 bg-[#06B6D4] text-white text-xs px-2 py-0.5 rounded-md">
+                24 spots
+              </span>
+            </div>
+            <div className="p-4">
+              <h3 className="text-xl text-[#0A2540] mb-2">Lakers vs Warriors</h3>
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm">Crypto.com Arena</span>
               </div>
-              <CardContent className="p-4">
-                <h3 className="text-[#0A2540] mb-1">{event.name}</h3>
-                <div className="flex items-center text-gray-600 mb-2">
-                  <MapPin className="w-4 h-4 mr-1" />
-                  <span className="text-sm">{event.venue}</span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center text-gray-600">
-                    <Calendar className="w-4 h-4 mr-1" />
-                    <span className="text-sm">{event.date}</span>
-                  </div>
-                  <span className="text-[#06B6D4]">From ${event.priceFrom}</span>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              <div className="flex items-center gap-2 text-gray-600 mb-3">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Dec 15, 2024 at 7:30 PM</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#0A2540]">
+                  From <span className="text-2xl">$15</span>
+                </span>
+                <button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white rounded-md px-4 py-2 text-sm font-medium">
+                  Find Parking
+                </button>
+              </div>
+            </div>
+          </div>
 
-        <button
-          disabled={loading}
-          onClick={() => setPage(prev => prev + 1)}
-          className="px-4 py-2 bg-blue-600 text-white rounded w-full mt-6 hover:bg-blue-700 disabled:opacity-50 transition-colors"
-        >
-          {loading ? "Loading..." : "Load More"}
-        </button>
-        
+          <div className="bg-card text-card-foreground flex flex-col gap-6 rounded-xl border overflow-hidden cursor-pointer hover:shadow-lg transition-shadow">
+            <div className="h-48 relative overflow-hidden">
+              <img
+                src="https://images.unsplash.com/photo-11?w=800&h=600&fit=crop"
+                alt="Lakers vs Warriors"
+                className="w-full h-full object-cover"
+              />
+              <span className="absolute top-4 right-4 bg-[#06B6D4] text-white text-xs px-2 py-0.5 rounded-md">
+                24 spots
+              </span>
+            </div>
+            <div className="p-4">
+              <h3 className="text-xl text-[#0A2540] mb-2">Michelle vs Michelle</h3>
+              <div className="flex items-center gap-2 text-gray-600 mb-2">
+                <MapPin className="w-4 h-4" />
+                <span className="text-sm">Crypto.com Arena</span>
+              </div>
+              <div className="flex items-center gap-2 text-gray-600 mb-3">
+                <Calendar className="w-4 h-4" />
+                <span className="text-sm">Nov 11 , 2025 at 7:30 PM</span>
+              </div>
+              <div className="flex items-center justify-between">
+                <span className="text-[#0A2540]">
+                  From <span className="text-2xl">$10000</span>
+                </span>
+                <button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white rounded-md px-4 py-2 text-sm font-medium">
+                  Find Parking
+                </button>
+              </div>
+            </div>
+          </div>
+          </div>
+
+          {/* Add more event cards here */}
+          <div className="flex justify-center mt-6 pt-12">
+            <button
+              disabled={loading}
+              onClick={() => {
+                setLoading(true);
+                setTimeout(() => {
+                  setPage(prev => prev + 1);
+                  setLoading(false);
+                }, 1000);
+              }}
+              className="px-4 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891b2] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {loading ? "Loading..." : "Load More Venues"}
+            </button>
+          </div>
+
         {/* Host CTA */}
-        <Card className="mt-8 bg-gradient-to-r from-[#0A2540] to-[#134E6F] text-white border-0">
+        <Card className="mt-8 mb-20 md:mb-8 bg-gradient-to-r from-[#0A2540] to-[#134E6F] text-white border-0">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between">
+            <div className="flex items-start justify-between gap-4">
               <div className="flex-1">
-                <h3 className="text-white mb-2">Become a Host</h3>
+                <h3 className="text-2xl text-white mb-2">Become a Host</h3>
                 <p className="text-cyan-100 mb-4">
                   Turn your driveway into extra income on event days
                 </p>
@@ -253,7 +297,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
               </div>
               <ImageWithFallback
                 src="https://images.unsplash.com/photo-1630350215986-ddaf3124eeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkcml2ZXdheSUyMGhvdXNlfGVufDF8fHx8MTc1OTc4MTQ0OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Host"
+                alt="Host driveway"
                 className="w-24 h-24 rounded-lg object-cover hidden md:block"
               />
             </div>
@@ -263,3 +307,4 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     </div>
   );
 }
+   

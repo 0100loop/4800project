@@ -1,8 +1,9 @@
 @custom-variant dark (&:is(.dark *));
 
 :root {
+  --bg: #ffffff;
   --font-size: 16px;
-  --background: #ffffff;
+  --background: hwb(0 100% 0%);
   --foreground: #0A2540;
   --card: #ffffff;
   --card-foreground: #0A2540;
@@ -40,6 +41,8 @@
   --sidebar-border: oklch(0.922 0 0);
   --sidebar-ring: oklch(0.708 0 0);
 }
+
+
 
 .dark {
   --background: oklch(0.145 0 0);

@@ -2,7 +2,7 @@
 
 /* Theme variables (dark blue + teal) */
 :root{
-  --bg:#0A2540; --teal:#06B6D4; --card:#0F2C4D; --ink:#E6F6F8; --muted:#94A3B8;
+  --bg:#ffffff; --teal:#06B6D4; --card:#0F2C4D; --ink:#E6F6F8; --muted:#94A3B8;
 }
 *{box-sizing:border-box}
 html,body,#root{height:100%}
