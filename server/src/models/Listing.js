@@ -2,19 +2,56 @@ import mongoose from "mongoose";
 
 const ListingSchema = new mongoose.Schema({
   spotId: { type: mongoose.Schema.Types.ObjectId, ref: "Spot", required: true },
-  eventName: { type: String }, // Optional: "Lakers vs Warriors"
-  date: { type: Date, required: true }, // Use Date type instead of String
-  startTime: { type: String, required: true }, // "17:00"
-  endTime: { type: String, required: true }, // "23:00"
+
+  // GeoJSON location (REQUIRED FOR RADIUS SEARCH)
+  location: {
+    type: {
+      type: String,
+      enum: ["Point"],
+      required: true,
+      default: "Point"
+    },
+    coordinates: {
+      type: [Number], // [lng, lat]
+      required: true
+    }
+  },
+
+  eventName: { type: String },
+  lat: { type: Number, required: true },
+lng: { type: Number, required: true },
+
+location: {
+  type: {
+    type: String,
+    enum: ["Point"],
+    required: true
+  },
+  coordinates: {
+    type: [Number],
+    required: true
+  }
+},
+  date: { type: Date, required: true },
+  startTime: { type: String, required: true },
+  endTime: { type: String, required: true },
   price: { type: Number, required: true },
   spacesAvailable: { type: Number, required: true },
-  bookedSpaces: { type: Number, default: 0 }, // Track bookings
-  status: { type: String, default: "active", enum: ["active", "full", "inactive"] },
+  bookedSpaces: { type: Number, default: 0 },
+  status: { 
+    type: String, 
+    default: "active",
+    enum: ["active", "full", "inactive"]
+  },
   isActive: { type: Boolean, default: true }
-}, {
-  timestamps: true // Automatically adds createdAt and updatedAt
+},
+{
+  timestamps: true
 });
-ListingSchema.index({ lat:1, lng:1 });
+
+// REQUIRED for $geoNear
+ListingSchema.index({ location: "2dsphere" });
+
 export default mongoose.model("Listing", ListingSchema);
 
 

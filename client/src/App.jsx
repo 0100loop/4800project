@@ -18,6 +18,8 @@ import Signup from "./pages/Auth/Signup";
 
 import Navbar from "./components/Navbar";
 
+import ProtectedRoute from './components/ProtectedRoute'; // adjust path if needed
+
 export default function App() {
   const location = useLocation();
 
@@ -49,33 +51,40 @@ const onNavigate = (v, d) => {
         <Route
           path="*"
           element={
+            <ProtectedRoute>
             <>
               {view === "home" && <HomeScreen onNavigate={onNavigate} />}
-{view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
-{view === "host" && <HostDashboard onNavigate={onNavigate} />}
-{view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
-{view === "spot" && (
-  <BookingConfirmation
-    onNavigate={onNavigate}
-    bookingData={data} 
-  />
-)}
-{view === "bookings" && <MyBookings onNavigate={onNavigate} />}
-{view === "profile" && <UserProfile onNavigate={onNavigate} />}
-{view === "spotManagement" && (
-  <SpotManagement 
-    onNavigate={onNavigate} 
-    spotData={data?.spotData || data}
-    apiFetch={apiFetch}
-  />
-)}
-{view === "createListing" && (
-  <CreateListing 
-    spotId={data?.spotId || data?.id}  // Handle both structures
-    onBack={() => onNavigate("spotManagement", data?.spotData || data)}  // Pass correct data back
-  />
-)}
+              {view === "map" && <MapView onNavigate={onNavigate} viewData={data} />}
+              {view === "host" && <HostDashboard onNavigate={onNavigate} />}
+              {view === "book" && <BookingConfirmation onNavigate={onNavigate} bookingData={data} />}
+              {view === "spot" && (
+                <BookingConfirmation
+                  onNavigate={onNavigate}
+                  bookingData={data} 
+                />
+              )}
+              {view === "bookings" && (
+                <MyBookings 
+                  onNavigate={onNavigate}
+                  apiFetch={apiFetch}  
+                />
+              )}
+              {view === "profile" && <UserProfile onNavigate={onNavigate} />}
+              {view === "spotManagement" && (
+                <SpotManagement 
+                  onNavigate={onNavigate} 
+                  spotData={data?.spotData || data}
+                  apiFetch={apiFetch}
+                />
+              )}
+              {view === "createListing" && (
+                <CreateListing 
+                  spotId={data?.spotId || data?.id}  // Handle both structures
+                  onBack={() => onNavigate("spotManagement", data?.spotData || data)}  // Pass correct data back
+                />
+              )}
             </>
+            </ProtectedRoute>
           }
         />
       </Routes>

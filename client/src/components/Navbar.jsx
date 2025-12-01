@@ -1,16 +1,18 @@
 import { FiUser } from "react-icons/fi";
 import { useState } from "react";
 import "./Navbar.css";
+import {useNavigate} from "react-router-dom";
 
 export default function Navbar({ onNavigate }) {
   const [open, setOpen] = useState(false);
   const name = localStorage.getItem("name");
   const avatar = localStorage.getItem("avatar");
+  const navigate = useNavigate();
 
   const handleLogout = () => {
     localStorage.clear();
     sessionStorage.clear();
-    onNavigate("home");
+    navigate("/login");
   };
 
   return (

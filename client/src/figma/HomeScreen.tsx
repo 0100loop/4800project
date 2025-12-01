@@ -13,22 +13,25 @@ interface HomeScreenProps {
 export function HomeScreen({ onNavigate }: HomeScreenProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [featuredEvents, setFeaturedEvents] = useState<any[]>([]);
+  const [featuredEvents, setEvents] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [page, setPage] = useState(0);
 
   useEffect(() => {
   const fetchEvents = async () => {
     try {
+      setLoading(true);
+
       const res = await fetch(
         `https://app.ticketmaster.com/discovery/v2/events.json?apikey=${
           import.meta.env.VITE_TICKETMASTER_API_KEY
-        }&city=Los%20Angeles`
+        }&city=Los%20Angeles&size=20&page=${page}`
       );
 
       const data = await res.json();
-      const events = data._embedded?.events || [];
+      const tmEvents = data._embedded?.events || [];
 
-      // convert Ticketmaster -> your card format
-      const normalized = events.slice(0, 4).map((e: any) => ({
+      const normalized = tmEvents.map((e: any) => ({
         id: e.id,
         name: e.name,
         venue: e._embedded?.venues?.[0]?.name || "Unknown Venue",
@@ -36,19 +39,22 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
         image:
           e.images?.find((img: any) => img.width > 900)?.url ||
           "https://via.placeholder.com/800x400",
-        spotsAvailable: Math.floor(Math.random() * 50) + 10, // fake  
+        spotsAvailable: Math.floor(Math.random() * 50) + 10,
         priceFrom:
           e.priceRanges?.[0]?.min || Math.floor(Math.random() * 30) + 10,
       }));
 
-      setFeaturedEvents(normalized);
+      setEvents(prev => [...prev, ...normalized]);
     } catch (err) {
       console.error("Fetch failed", err);
+    } finally {
+      setLoading(false);
     }
   };
 
   fetchEvents();
-}, []);
+}, [page]);
+
 
   
 
@@ -64,46 +70,6 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
     { id: 9, name: 'Honda Center', city: 'Anaheim, CA', type: 'Arena' },
     { id: 10, name: 'Greek Theatre', city: 'Los Angeles, CA', type: 'Theater' },
   ];
-
-  /*const featuredEvents = [
-    {
-      id: 1,
-      name: 'Lakers vs Warriors',
-      venue: 'Crypto.com Arena',
-      date: 'Oct 15, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFkaXVtJTIwcGFya2luZ3xlbnwxfHx8fDE3NTk3ODE0NDh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      spotsAvailable: 42,
-      priceFrom: 15
-    },
-    {
-      id: 2,
-      name: 'Taylor Swift Concert',
-      venue: 'SoFi Stadium',
-      date: 'Oct 22, 2025',
-      image: 'https://images.unsplash.com/photo-1534050055340-71c7fa612a99?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxjb25jZXJ0JTIwdmVudWUlMjBuaWdodHxlbnwxfHx8fDE3NTk3ODE0NDh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      spotsAvailable: 28,
-      priceFrom: 25
-    },
-    {
-      id: 3,
-      name: 'Dodgers vs Giants',
-      venue: 'Dodger Stadium',
-      date: 'Oct 18, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFkaXVtJTIwcGFya2luZ3xlbnwxfHx8fDE3NTk3ODE0NDh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      spotsAvailable: 56,
-      priceFrom: 18
-    },
-    {
-      id: 4,
-      name: 'USC vs UCLA Game',
-      venue: 'Rose Bowl Stadium',
-      date: 'Nov 2, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxzdGFkaXVtJTIwcGFya2luZ3xlbnwxfHx8fDE3NTk3ODE0NDh8MA&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral',
-      spotsAvailable: 34,
-      priceFrom: 22
-    }
-  ];
-  */
 
   const filteredVenues = searchQuery.trim()
     ? allVenues.filter(venue =>
@@ -149,7 +115,7 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5 z-10" />
             <Input
               placeholder="Search venues, events, or locations..."
-              className="pl-12 pr-12 py-6 rounded-xl border-0 bg-white shadow-lg"
+              className="pl-12 pr-12 py-6 rounded-xl border-0 bg-white shadow-lg text-gray-900 placeholder-gray-400 focus:ring-2 focus:ring-[#06B6D4] focus:outline-none"
               value={searchQuery}
               onChange={handleSearchChange}
               onFocus={handleSearchFocus}
@@ -261,6 +227,14 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           ))}
         </div>
 
+        <button
+          disabled={loading}
+          onClick={() => setPage(prev => prev + 1)}
+          className="px-4 py-2 bg-blue-600 text-white rounded w-full mt-6 hover:bg-blue-700 disabled:opacity-50 transition-colors"
+        >
+          {loading ? "Loading..." : "Load More"}
+        </button>
+        
         {/* Host CTA */}
         <Card className="mt-8 bg-gradient-to-r from-[#0A2540] to-[#134E6F] text-white border-0">
           <CardContent className="p-6">

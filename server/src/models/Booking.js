@@ -5,7 +5,13 @@ const BookingSchema = new mongoose.Schema({
   start: Date,
   end: Date,
   totalPrice: Number,
-  status: { type:String, enum:["paid","pending","cancelled"], default:"paid" },
-  paymentId: String
+  status: { type:String, enum:["paid","pending","cancelled", "confirmed"], default:"paid" },
+  paymentId: String,
+  // Add these fields to your Booking schema
+email: String,
+phone: String,
+vehicleInfo: String,
+date: Date,
+spotId: { type: mongoose.Schema.Types.ObjectId, ref: "Spot" },
 }, { timestamps:true });
 export default mongoose.model("Booking", BookingSchema);

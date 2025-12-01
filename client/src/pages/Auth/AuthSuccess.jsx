@@ -8,10 +8,15 @@ export default function AuthSuccess() {
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const token = params.get("token");
+    const name = params.get("name");
 
     if (token) {
       setToken(token);
-      nav("/");
+
+      // Store the name in localStorage
+      if (name) localStorage.setItem("name", name);
+
+      nav("/"); // redirect to home
     }
   }, [nav]);
 

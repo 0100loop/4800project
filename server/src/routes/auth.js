@@ -3,7 +3,8 @@ import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import User from "../models/User.js";
 import { sendWelcomeEmail } from "../lib/mailer.js";
-import passport from "../lib/googleAuth.js";
+import passport from "passport";
+import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const router = express.Router();
 
@@ -14,7 +15,48 @@ if (!process.env.JWT_SECRET) {
 }
 
 /* ============================
-      USER SIGNUP
+      GOOGLE STRATEGY
+============================ */
+passport.use(
+  new GoogleStrategy(
+    {
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: "/api/auth/google/callback",
+    },
+    async (accessToken, refreshToken, profile, done) => {
+      try {
+        const email = profile.emails[0].value;
+
+        let user = await User.findOne({ email });
+
+        if (!user) {
+          // Create a Google-only user (no password required)
+          user = await User.create({
+            name: profile.displayName,
+            email,
+            googleId: profile.id,
+            role: "user",
+          });
+        }
+
+        const token = jwt.sign(
+          { id: user._id, role: user.role },
+          process.env.JWT_SECRET,
+          { expiresIn: "7d" }
+        );
+
+        done(null, { ...user.toObject(), token });
+
+      } catch (err) {
+        done(err, null);
+      }
+    }
+  )
+);
+
+/* ============================
+          SIGNUP
 ============================ */
 router.post("/signup", async (req, res) => {
   try {
@@ -38,7 +80,6 @@ router.post("/signup", async (req, res) => {
       role: role || "user",
     });
 
-    // Send welcome email (async)
     sendWelcomeEmail(user.email, user.name, user.role).catch(() => {});
 
     const token = jwt.sign(
@@ -60,7 +101,7 @@ router.post("/signup", async (req, res) => {
 });
 
 /* ============================
-      USER LOGIN
+           LOGIN
 ============================ */
 router.post("/login", async (req, res) => {
   try {
@@ -72,6 +113,13 @@ router.post("/login", async (req, res) => {
 
     const user = await User.findOne({ email });
     if (!user) return res.status(400).json({ error: "Invalid credentials." });
+
+    // BLOCK Google-only accounts from password login
+    if (!user.passwordHash) {
+      return res.status(400).json({
+        error: "This account uses Google login. Please sign in with Google.",
+      });
+    }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
     if (!isMatch) return res.status(400).json({ error: "Invalid credentials." });
@@ -95,29 +143,29 @@ router.post("/login", async (req, res) => {
 });
 
 /* ============================
-    GOOGLE OAUTH (LOCALHOST)
+      GOOGLE OAUTH ROUTES
 ============================ */
-
-// Step 1: Redirect to Google with scope + choose account
 router.get(
   "/google",
-  passport.authenticate("google", { 
+  passport.authenticate("google", {
     scope: ["profile", "email"],
-    prompt: "select_account"   // Force account chooser
+    prompt: "select_account",
   })
 );
 
-// Step 2: Google Callback → issue token → redirect to frontend
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const token = req.user.token;
+    const name = req.user.name; // <-- get user's name from the Google profile
 
-    // Local frontend callback
-    res.redirect(`http://localhost:5173/auth-success?token=${token}`);
+    // Redirect to frontend with token and name
+    res.redirect(
+      `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(name)}`
+    );
   }
 );
 
-export default router;
 
+export default router;

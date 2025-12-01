@@ -116,7 +116,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
     const handleSubmit = async () => {
       const spotData = {
         title: description,
-        pricePerHour: price,
+        pricePerEvent: price,
         address,
         bathroom: bathroomAccess,
         evCharging,
@@ -138,7 +138,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
         setMySpots((prev) => [{
           id: data._id || data.id,
           address: data.address || data.title || '',
-          price: data.price ?? data.pricePerHour ?? 0,
+          price: data.price ?? data.pricePerEvent ?? 0,
           totalBookings: data.totalBookings || 0,
           earnings: data.earnings || 0,
           nextEvent: data.nextEvent || null,
