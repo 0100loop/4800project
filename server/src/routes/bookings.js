@@ -6,43 +6,56 @@ import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Create booking
+/* ============================
+       CREATE BOOKING
+============================ */
 router.post("/", auth("user"), async (req, res) => {
   try {
-    const { listingId, spotId, start, end, email, phone, vehicleInfo, total, date } = req.body;
-    
-    console.log('Booking request:', req.body);
+    const {
+      listingId,
+      spotId,
+      start,
+      end,
+      email,
+      phone,
+      vehicleInfo,
+      total,
+      date,
+    } = req.body;
 
-    // Handle both old format (spotId, start, end) and new format (listingId, date, total)
+    console.log("Booking request:", req.body);
+
+    // NEW FORMAT — VIA Booking Confirmation
     if (listingId) {
-      // New format from BookingConfirmation
       const listing = await Listing.findById(listingId);
-      if (!listing) return res.status(404).json({ error: "Listing not found" });
+      if (!listing)
+        return res.status(404).json({ error: "Listing not found" });
 
       const booking = await Booking.create({
         userId: req.user.id,
-        listingId: new mongoose.Types.ObjectId(listingId),
-        spotId: listing.spotId, // Get spotId from listing
+        listingId,
+        spotId: listing.spotId,
         email,
         phone,
         vehicleInfo,
         totalPrice: total,
-        date: date || new Date(),
+        date: date ? new Date(date) : new Date(),
         status: "confirmed",
-        paymentId: "PAY_" + Date.now(), // Mock payment
+        paymentId: "PAY_" + Date.now(),
       });
 
       await Listing.findByIdAndUpdate(listingId, { booked: true });
+
       return res.json({ message: "Booking confirmed", booking });
     }
 
-    // Old format (legacy support)
+    /* OLD FORMAT SUPPORT */
     const listing = await Listing.findById(spotId);
-    if (!listing) return res.status(404).json({ error: "Listing not found" });
+    if (!listing)
+      return res.status(404).json({ error: "Listing not found" });
 
     const hours = Math.max(1, (new Date(end) - new Date(start)) / 3600000);
     const totalPrice = Math.round(hours * (listing.pricePerHour || 10));
-    const paymentId = "PAY_" + Date.now();
 
     const booking = await Booking.create({
       userId: req.user.id,
@@ -51,26 +64,28 @@ router.post("/", auth("user"), async (req, res) => {
       end,
       totalPrice,
       status: "paid",
-      paymentId,
+      paymentId: "PAY_" + Date.now(),
     });
-    
+
     res.json({ message: "Booking confirmed", booking });
   } catch (e) {
-    console.error('Booking error:', e);
+    console.error("Booking error:", e);
     res.status(400).json({ error: e.message });
   }
 });
 
-// Get bookings - for hosts (by spotId) or guests (by userId)
+/* ============================
+    GET BOOKINGS (HOST / USER)
+============================ */
 router.get("/", auth("user"), async (req, res) => {
   try {
     const { spotId, upcoming } = req.query;
 
+    // HOST VIEWING BOOKINGS BY SPOT
     if (spotId) {
-      // Host viewing bookings for their spot
       const query = { spotId: new mongoose.Types.ObjectId(spotId) };
-      
-      if (upcoming === 'true') {
+
+      if (upcoming === "true") {
         query.date = { $gte: new Date() };
       }
 
@@ -78,13 +93,34 @@ router.get("/", auth("user"), async (req, res) => {
       return res.json(bookings);
     }
 
-    // Guest viewing their own bookings
-    const bookings = await Booking.find({ userId: req.user.id }).sort({ date: -1 });
+    // USER VIEWING OWN BOOKINGS
+    const bookings = await Booking.find({ userId: req.user.id }).sort({
+      date: -1,
+    });
+
     res.json(bookings);
   } catch (e) {
-    console.error('Error fetching bookings:', e);
+    console.error("Error fetching bookings:", e);
     res.status(500).json({ error: e.message });
   }
 });
 
+/* ============================
+     GET /me — USER BOOKINGS
+============================ */
+router.get("/me", auth("user"), async (req, res) => {
+  try {
+    const bookings = await Booking.find({ userId: req.user.id })
+      .populate("listingId")
+      .sort({ date: -1 });
+
+    res.json(bookings);
+  } catch (err) {
+    console.error("Error in /me:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
+
 export default router;
+
+

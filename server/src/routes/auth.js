@@ -5,10 +5,13 @@ import User from "../models/User.js";
 import { sendWelcomeEmail } from "../lib/mailer.js";
 import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Ensure JWT secret exists
+/* ============================
+      CHECK ENV VARS
+============================ */
 if (!process.env.JWT_SECRET) {
   console.error("❌ Missing JWT_SECRET in environment variables!");
   process.exit(1);
@@ -31,7 +34,6 @@ passport.use(
         let user = await User.findOne({ email });
 
         if (!user) {
-          // Create a Google-only user (no password required)
           user = await User.create({
             name: profile.displayName,
             email,
@@ -56,20 +58,18 @@ passport.use(
 );
 
 /* ============================
-          SIGNUP
+           SIGNUP
 ============================ */
 router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, role } = req.body;
 
-    if (!email || !password || !name) {
+    if (!email || !password || !name)
       return res.status(400).json({ error: "Name, email, and password are required." });
-    }
 
     const exists = await User.findOne({ email });
-    if (exists) {
+    if (exists)
       return res.status(400).json({ error: "Email already registered." });
-    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -96,7 +96,7 @@ router.post("/signup", async (req, res) => {
 
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: e.message || "Server error." });
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -107,14 +107,13 @@ router.post("/login", async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    if (!email || !password) {
+    if (!email || !password)
       return res.status(400).json({ error: "Email and password are required." });
-    }
 
     const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: "Invalid credentials." });
+    if (!user)
+      return res.status(400).json({ error: "Invalid credentials." });
 
-    // BLOCK Google-only accounts from password login
     if (!user.passwordHash) {
       return res.status(400).json({
         error: "This account uses Google login. Please sign in with Google.",
@@ -122,7 +121,8 @@ router.post("/login", async (req, res) => {
     }
 
     const isMatch = await bcrypt.compare(password, user.passwordHash);
-    if (!isMatch) return res.status(400).json({ error: "Invalid credentials." });
+    if (!isMatch)
+      return res.status(400).json({ error: "Invalid credentials." });
 
     const token = jwt.sign(
       { id: user._id, role: user.role },
@@ -138,7 +138,7 @@ router.post("/login", async (req, res) => {
 
   } catch (e) {
     console.error(e);
-    res.status(500).json({ error: e.message || "Server error." });
+    res.status(500).json({ error: e.message });
   }
 });
 
@@ -158,14 +158,32 @@ router.get(
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const token = req.user.token;
-    const name = req.user.name; // <-- get user's name from the Google profile
+    const name = req.user.name;
 
-    // Redirect to frontend with token and name
     res.redirect(
       `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(name)}`
     );
   }
 );
 
+/* ============================
+       UPDATE PROFILE
+============================ */
+router.put("/me", auth("user"), async (req, res) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user)
+      return res.status(404).json({ message: "User not found" });
+
+    await user.updateOne(req.body);
+
+    res.json(user);
+  } catch (err) {
+    console.error("Update profile error:", err);
+    res.status(500).json({ message: "Server error" });
+  }
+});
 
 export default router;
+
