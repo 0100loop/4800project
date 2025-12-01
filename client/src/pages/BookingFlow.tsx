@@ -1,9 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
   ArrowLeft,
-  Calendar,
-  Clock,
   MapPin,
   DollarSign,
 } from "lucide-react";
@@ -11,18 +9,26 @@ import {
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
 import { Input } from "../ui/input";
-import { Badge } from "../ui/badge";
+import { Label } from "../ui/label";
 import { ImageWithFallback } from "../ui/ImageWithFallback";
 
 import { fetchSpotById } from "../lib/spotApi";
-import { createBooking } from "../lib/bookingApi";
+import { createCheckoutSession } from "../lib/paymentsApi";
 
 interface BookingFlowProps {
   onNavigate: (view: string, data?: any) => void;
+  spotId?: string | number;
 }
 
-export function BookingFlow({ onNavigate }: BookingFlowProps) {
-  const { id } = useParams<{ id: string }>();
+export function BookingFlow({ onNavigate, spotId }: BookingFlowProps) {
+  const params = useParams<{ id: string }>();
+  const resolvedSpotId = useMemo(() => {
+    if (spotId) return String(spotId);
+    if (params?.id) return params.id;
+    return null;
+  }, [spotId, params?.id]);
+  const backTarget =
+    spotId ?? (params?.id ? Number(params.id) : undefined);
 
   const [spot, setSpot] = useState<any | null>(null);
   const [loading, setLoading] = useState(true);
@@ -30,12 +36,13 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
   const [endTime, setEndTime] = useState("");
   const [totalPrice, setTotalPrice] = useState<number | null>(null);
   const [error, setError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   useEffect(() => {
     async function load() {
       try {
-        if (!id) return;
-        const s = await fetchSpotById(id);
+        if (!resolvedSpotId) return;
+        const s = await fetchSpotById(resolvedSpotId);
         setSpot(s);
       } catch (e: any) {
         setError(e.message);
@@ -44,40 +51,54 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
       }
     }
     load();
-  }, [id]);
+  }, [resolvedSpotId]);
 
-  const calculatePrice = () => {
-    if (!spot || !startTime || !endTime) return;
+  useEffect(() => {
+    if (!spot || !startTime || !endTime) {
+      setTotalPrice(null);
+      return;
+    }
 
-    const price = spot.price || spot.pricePerHour || 10;
-
+    const pricePerHour = spot.price || spot.pricePerHour || 10;
     const start = new Date(startTime);
     const end = new Date(endTime);
-
     const diffMs = end.getTime() - start.getTime();
-    const hours = Math.max(1, diffMs / (1000 * 60 * 60));
 
-    const total = Math.round(hours * price);
-    setTotalPrice(total);
-  };
+    if (Number.isNaN(diffMs) || diffMs <= 0) {
+      setTotalPrice(null);
+      return;
+    }
+
+    const hours = Math.max(1, diffMs / (1000 * 60 * 60));
+    setTotalPrice(Math.round(hours * pricePerHour));
+  }, [spot, startTime, endTime]);
 
   const handleBooking = async () => {
     setError("");
 
+    if (!resolvedSpotId) {
+      setError("Missing spot ID.");
+      return;
+    }
+
     if (!startTime || !endTime) {
-      return setError("Please select a start and end time.");
+      setError("Please select a start and end time.");
+      return;
     }
 
     try {
-      const result = await createBooking(id!, startTime, endTime);
+      setIsSubmitting(true);
+      const session = await createCheckoutSession(
+        resolvedSpotId,
+        startTime,
+        endTime
+      );
 
-      alert("Booking confirmed!");
-      console.log("Booking:", result);
-
-      // Navigate to bookings page
-      onNavigate("bookings");
+      window.location.href = session.url;
     } catch (e: any) {
-      setError(e.message || "Booking failed.");
+      setError(e.message || "Unable to start checkout.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -105,7 +126,11 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
       {/* HEADER */}
       <header className="bg-white shadow-sm sticky top-0 z-40">
         <div className="px-4 py-3 flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => onNavigate("spot", id)}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onNavigate("spot", backTarget)}
+          >
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <p className="text-[#0A2540] font-semibold">Book This Spot</p>
@@ -153,10 +178,7 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
               <Input
                 type="datetime-local"
                 value={startTime}
-                onChange={(e) => {
-                  setStartTime(e.target.value);
-                  calculatePrice();
-                }}
+                onChange={(e) => setStartTime(e.target.value)}
               />
             </div>
 
@@ -165,10 +187,7 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
               <Input
                 type="datetime-local"
                 value={endTime}
-                onChange={(e) => {
-                  setEndTime(e.target.value);
-                  calculatePrice();
-                }}
+                onChange={(e) => setEndTime(e.target.value)}
               />
             </div>
           </div>
@@ -188,8 +207,9 @@ export function BookingFlow({ onNavigate }: BookingFlowProps) {
         <Button
           className="w-full bg-[#06B6D4] hover:bg-[#0891b2] text-white py-3 text-lg"
           onClick={handleBooking}
+          disabled={isSubmitting}
         >
-          Confirm Booking
+          {isSubmitting ? "Redirecting to Stripe…" : "Confirm Booking"}
         </Button>
       </div>
     </div>

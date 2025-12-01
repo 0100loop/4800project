@@ -7,6 +7,8 @@ import { BookingFlow } from "./pages/BookingFlow";
 import { HostDashboard } from "./pages/HostDashboard";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MyBookings } from "./pages/MyBookings";
+import { PaymentSuccess } from "./pages/PaymentSuccess";
+import { PaymentCancel } from "./pages/PaymentCancel";
 import AuthSuccess from "./pages/AuthSuccess.jsx";
 
 
@@ -26,6 +28,16 @@ export default function App() {
   const [view, setView] = useState<ViewName>("login");
   const [selectedSpotId, setSelectedSpotId] = useState<number | undefined>();
   const [selectedVenue, setSelectedVenue] = useState<any>();
+  const pathname =
+    typeof window !== "undefined" ? window.location.pathname : "/";
+
+  if (pathname === "/payments/success") {
+    return <PaymentSuccess />;
+  }
+
+  if (pathname === "/payments/cancel") {
+    return <PaymentCancel />;
+  }
 
   // -------------------------------------------
   // RESTORE SESSION FROM LOCALSTORAGE ON RELOAD
@@ -33,6 +45,8 @@ export default function App() {
   useEffect(() => {
     const userStr = localStorage.getItem("user");
     const token = localStorage.getItem("token");
+    const params = new URLSearchParams(window.location.search);
+    const deepLinkView = params.get("view") as ViewName | null;
 
     if (userStr && token) {
       try {
@@ -41,7 +55,10 @@ export default function App() {
 
         setUserType(role);
         setIsLoggedIn(true);
-        setView("home");
+        setView(deepLinkView || "home");
+        if (deepLinkView) {
+          window.history.replaceState({}, "", window.location.pathname);
+        }
       } catch {
         // invalid data: clear it
         localStorage.clear();
