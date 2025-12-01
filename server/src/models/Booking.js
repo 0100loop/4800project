@@ -2,6 +2,7 @@ import mongoose from "mongoose";
 const BookingSchema = new mongoose.Schema({
   userId: { type: mongoose.Schema.Types.ObjectId, ref:"User", required:true },
   listingId: { type: mongoose.Schema.Types.ObjectId, ref:"Listing", required:true },
+  spotId: { type: mongoose.Schema.Types.ObjectId, ref:"Spot", required:true },
   start: Date,
   end: Date,
   totalPrice: Number,

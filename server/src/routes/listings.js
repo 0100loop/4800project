@@ -33,7 +33,8 @@ router.post("/", async (req, res) => {
       location: {
         type: "Point",
         coordinates: [lng, lat]
-      }
+      },
+       booked: { type: Boolean, default: false }
     });
 
     res.json({ message: "Listing created", listing });
@@ -51,11 +52,15 @@ router.get("/", async (req, res) => {
 
     // 1. If specific spotId is provided → return its listings
     if (spotId) {
+      console.log("Fetching listings for spot:", spotId);
+
       const listings = await Listing.find({
         spotId: new mongoose.Types.ObjectId(spotId),
-        isActive: true
+        isActive: true,
+        status: "active", // FIX: this matches your DB
       });
 
+      console.log("Listings returned:", listings.length);
       return res.json(listings);
     }
 
@@ -81,21 +86,22 @@ router.get("/", async (req, res) => {
           },
           distanceField: "distanceMeters",
           spherical: true,
-          maxDistance: Number(radius) // meters
+          maxDistance: Number(radius)
         }
       },
       {
-        $match: {
-  isActive: true,
-  date: eventDate
-}
-      },
+  $match: {
+    isActive: true,
+    status: "active",
+    date: eventDate,
+    $expr: { $lt: ["$bookedSpaces", "$spacesAvailable"] }
+  }
+},
       {
         $sort: { distanceMeters: 1 }
       }
     ]);
 
-    // Convert meters → human readable km
     const formatted = listings.map(l => ({
       ...l,
       distanceKm: (l.distanceMeters / 1000).toFixed(2)
@@ -108,6 +114,8 @@ router.get("/", async (req, res) => {
     res.status(500).json({ error: e.message });
   }
 });
+
+
 
 
 // Delete listing

@@ -32,6 +32,7 @@ router.post("/", auth("user"), async (req, res) => {
         paymentId: "PAY_" + Date.now(), // Mock payment
       });
 
+      await Listing.findByIdAndUpdate(listingId, { booked: true });
       return res.json({ message: "Booking confirmed", booking });
     }
 
