@@ -138,10 +138,37 @@ router.get("/:spotId/bookings", auth("user"), async (req, res) => {
       .sort({ date: -1 });
 
     res.json(bookings);
+} catch (err) {
+  console.error("GET spot bookings error:", err);
+  res.status(500).json({ message: "Server error" });
+}
+});
+
+/* ================================
+   DELETE A SPOT (HOST ONLY)
+================================ */
+router.delete("/:spotId", auth("user"), async (req, res) => {
+  try {
+    const spot = await Spot.findById(req.params.spotId);
+
+    if (!spot) {
+      return res.status(404).json({ error: "Spot not found" });
+    }
+
+    if (String(spot.host) !== String(req.user.id)) {
+      return res.status(403).json({ error: "Unauthorized" });
+    }
+
+    await Spot.findByIdAndDelete(req.params.spotId);
+
+    res.json({ success: true, message: "Spot deleted successfully" });
+
   } catch (err) {
-    console.error("GET spot bookings error:", err);
-    res.status(500).json({ message: "Server error" });
+    console.error("Delete spot error:", err);
+    res.status(500).json({ error: "Server error" });
   }
 });
 
 export default router;
+
+

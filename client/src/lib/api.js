@@ -1,18 +1,36 @@
-// Get backend URL from environment variable, fallback to localhost:5000
-const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000';
+// src/lib/api.js
+// Central API helper + auth token helpers
+
+// Backend base URL (env or fallback)
+const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:5000";
 
 export function getToken() {
-  return localStorage.getItem('token') || '';
+  return localStorage.getItem("token") || "";
 }
 
 export function setToken(token) {
-  if (token) localStorage.setItem('token', token);
+  if (token) {
+    localStorage.setItem("token", token);
+  } else {
+    localStorage.removeItem("token");
+  }
 }
 
-export async function apiFetch(path, { method = 'GET', body, auth = false } = {}) {
-  // Prepend the base URL to the path
-  const url = path.startsWith('http') ? path : `${API_BASE_URL}${path}`;
-  
+export function clearToken() {
+  localStorage.removeItem("token");
+}
+
+/**
+ * apiFetch
+ * path: "/api/..." or full URL
+ * options: { method, body, auth }
+ */
+export async function apiFetch(
+  path,
+  { method = "GET", body, auth = false } = {}
+) {
+  const url = path.startsWith("http") ? path : `${API_BASE_URL}${path}`;
+
   const headers = {
     "Content-Type": "application/json",
   };
@@ -28,6 +46,7 @@ export async function apiFetch(path, { method = 'GET', body, auth = false } = {}
     method,
     headers,
     body: body ? JSON.stringify(body) : undefined,
+    credentials: "include",
   });
 
   const text = await res.text();
@@ -45,3 +64,4 @@ export async function apiFetch(path, { method = 'GET', body, auth = false } = {}
 
   return data;
 }
+
