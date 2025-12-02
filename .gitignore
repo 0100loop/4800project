@@ -1,18 +1,18 @@
-<<<<<<< HEAD
-node_modules/ 
-.env 
-.env.*.local 
-dist/ 
-.vscode/ 
-.DS_Store 
-coverage/ 
-=======
+node_modules/
 server/node_modules/
->>>>>>> feat/first-api
+dist/
+coverage/
+.vscode/
+.DS_Store
+
+# Environment & secrets
+.env
+*.env
+.env.*.local
+server/.env
+
+# Java tooling artifacts
 junit-test/.classpath
 junit-test/.project
 *.class
 *.prefs
-.env
-*.env
-server/.env

@@ -1,192 +1,202 @@
-import { useState } from 'react';
-import { Search, MapPin, Calendar, TrendingUp, X } from 'lucide-react';
-import { Input } from './ui/input';
-import { Button } from './ui/button';
-import { Card, CardContent } from './ui/card';
-import { Badge } from './ui/badge';
-import { ImageWithFallback } from './figma/ImageWithFallback';
+import { useState, useEffect } from "react";
+import { Search, MapPin, Calendar, TrendingUp, X } from "lucide-react";
+import { Input } from "../ui/input";
+import { Button } from "../ui/button";
+import { Card, CardContent } from "../ui/card";
+import { Badge } from "../ui/badge";
+import { ImageWithFallback } from "../figma/ImageWithFallback";
 
 interface HomeScreenProps {
   onNavigate: (view: string, data?: any) => void;
 }
 
-export function HomeScreen({ onNavigate }: HomeScreenProps) {
-  const [searchQuery, setSearchQuery] = useState('');
-  const [showSearchResults, setShowSearchResults] = useState(false);
+export default function HomeScreen({ onNavigate }: HomeScreenProps) {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [featuredEvents, setFeaturedEvents] = useState<any[]>([]);
+  const [page, setPage] = useState(0);
+  const [loading, setLoading] = useState(false);
 
-  const allVenues = [
-    { id: 1, name: 'Crypto.com Arena', city: 'Los Angeles, CA', type: 'Arena' },
-    { id: 2, name: 'SoFi Stadium', city: 'Inglewood, CA', type: 'Stadium' },
-    { id: 3, name: 'Dodger Stadium', city: 'Los Angeles, CA', type: 'Baseball Stadium' },
-    { id: 4, name: 'Rose Bowl Stadium', city: 'Pasadena, CA', type: 'Football Stadium' },
-    { id: 5, name: 'Hollywood Bowl', city: 'Los Angeles, CA', type: 'Amphitheater' },
-    { id: 6, name: 'The Forum', city: 'Inglewood, CA', type: 'Arena' },
-    { id: 7, name: 'Banc of California Stadium', city: 'Los Angeles, CA', type: 'Soccer Stadium' },
-    { id: 8, name: 'Angel Stadium', city: 'Anaheim, CA', type: 'Baseball Stadium' },
-    { id: 9, name: 'Honda Center', city: 'Anaheim, CA', type: 'Arena' },
-    { id: 10, name: 'Greek Theatre', city: 'Los Angeles, CA', type: 'Theater' },
-  ];
+  /* LOAD EVENTS */
+  async function loadEvents(p: number) {
+    try {
+      setLoading(true);
+      const res = await fetch(`/api/events?page=${p}`);
+      const data = await res.json();
 
-  const featuredEvents = [
-    {
-      id: 1,
-      name: 'Lakers vs Warriors',
-      venue: 'Crypto.com Arena',
-      date: 'Oct 15, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?auto=format&fit=crop&w=1280&q=60',
-      spotsAvailable: 42,
-      priceFrom: 15,
-    },
-    {
-      id: 2,
-      name: 'Taylor Swift Concert',
-      venue: 'SoFi Stadium',
-      date: 'Oct 22, 2025',
-      image: 'https://images.unsplash.com/photo-1534050055340-71c7fa612a99?auto=format&fit=crop&w=1280&q=60',
-      spotsAvailable: 28,
-      priceFrom: 25,
-    },
-    {
-      id: 3,
-      name: 'Dodgers vs Giants',
-      venue: 'Dodger Stadium',
-      date: 'Oct 18, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?auto=format&fit=crop&w=1280&q=60',
-      spotsAvailable: 56,
-      priceFrom: 18,
-    },
-    {
-      id: 4,
-      name: 'USC vs UCLA Game',
-      venue: 'Rose Bowl Stadium',
-      date: 'Nov 2, 2025',
-      image: 'https://images.unsplash.com/photo-1592841897894-108b4aa4f076?auto=format&fit=crop&w=1280&q=60',
-      spotsAvailable: 34,
-      priceFrom: 22,
-    },
-  ];
+      const normalized = data.map((e: any) => ({
+        ...e,
+        spotsAvailable: Math.floor(Math.random() * 40) + 5,
+        priceFrom: e.priceFrom || Math.floor(Math.random() * 20) + 10,
+      }));
 
-  const filteredVenues = searchQuery.trim()
-    ? allVenues.filter((v) =>
-        v.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.city.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        v.type.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : [];
+      setFeaturedEvents((prev) => [...prev, ...normalized]);
+    } finally {
+      setLoading(false);
+    }
+  }
 
-  const handleVenueSelect = (venue: (typeof allVenues)[0]) => {
-    setSearchQuery('');
-    setShowSearchResults(false);
-    onNavigate('map', { venue });
-  };
+  useEffect(() => {
+    loadEvents(page);
+  }, [page]);
 
   return (
-    <div className="min-h-screen bg-white">
-      {/* Hero */}
-      <div className="bg-[#0A2540] text-white">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <h1 className="text-3xl font-semibold">Find Your Spot</h1>
-          <p className="text-cyan-100 mt-1">Park with locals near your favorite venues</p>
+    <div className="max-w-7xl mx-auto px-4 py-10">
 
-          {/* Search Bar */}
-          <div className="relative mt-5">
-            <Search className="absolute left-5 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
-            <Input
-              placeholder="Search venues, events, or locations..."
-              className="pl-12 pr-12 h-12 rounded-full border-0 bg-white text-[#0A2540] shadow-lg"
-              value={searchQuery}
-              onChange={(e) => {
-                setSearchQuery(e.target.value);
-                setShowSearchResults(!!e.target.value.trim());
-              }}
-              onFocus={() => setShowSearchResults(!!searchQuery.trim())}
-            />
-            {searchQuery && (
-              <button
-                onClick={() => {
-                  setSearchQuery('');
-                  setShowSearchResults(false);
-                }}
-                className="absolute right-5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            )}
+      {/* TITLE */}
+      <h1 className="text-5xl font-bold text-[#0A2540] mb-3">
+        Find Your Perfect Spot
+      </h1>
+      <p className="text-gray-600 mb-10 text-lg">
+        Discover convenient parking near stadiums, theaters, and events
+      </p>
 
-            {showSearchResults && (
-              <div className="absolute top-full mt-2 left-0 right-0 bg-white rounded-xl shadow-2xl overflow-hidden z-50 max-h-80 overflow-y-auto">
-                {filteredVenues.length ? (
-                  filteredVenues.map((venue) => (
-                    <button
-                      key={venue.id}
-                      onClick={() => handleVenueSelect(venue)}
-                      className="w-full px-4 py-3 hover:bg-gray-50 flex items-start gap-3 text-left border-b border-gray-100 last:border-b-0"
-                    >
-                      <MapPin className="w-4 h-4 text-[#06B6D4]" />
-                      <div className="flex-1">
-                        <p className="text-[#0A2540] font-medium">{venue.name}</p>
-                        <p className="text-sm text-gray-600">{venue.city} • {venue.type}</p>
-                      </div>
-                    </button>
-                  ))
-                ) : (
-                  <div className="px-4 py-6 text-center text-gray-600">No venues found</div>
-                )}
-              </div>
-            )}
-          </div>
-
-          {/* Actions */}
-          <div className="flex gap-3 mt-5">
-            <Button onClick={() => onNavigate('map')} className="bg-[#06B6D4] text-white rounded-full px-6">
-              <MapPin className="w-4 h-4 mr-2" /> View Map
-            </Button>
-            <Button variant="outline" className="bg-white/10 border-white/20 text-white rounded-full px-6">
-              <Calendar className="w-4 h-4 mr-2" /> My Bookings
-            </Button>
-          </div>
-        </div>
+      {/* SEARCH */}
+      <div className="relative mb-12">
+        <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 w-6 h-6" />
+        <Input
+          placeholder="Search for venues or events..."
+          className="pl-14 py-6 text-lg border-gray-300 text-[#0A2540]"
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+        />
+        {searchQuery && (
+          <button
+            onClick={() => setSearchQuery("")}
+            className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-400"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        )}
       </div>
 
-      {/* Events Section */}
-      <div className="bg-[linear-gradient(180deg,#F0F9FF_0%,#FFFFFF_40%)]">
-        <div className="max-w-6xl mx-auto px-4 py-10">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xl text-[#0A2540] font-semibold">Popular Events</h2>
-              <p className="text-gray-600 text-sm">Find parking near these events</p>
+      {/* 3 MAIN TILES */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+
+        <Card
+          onClick={() => onNavigate("map")}
+          className="p-8 text-center border-2 border-gray-200 hover:shadow-lg transition cursor-pointer"
+        >
+          <MapPin className="w-9 h-9 text-[#06B6D4] mx-auto mb-3" />
+          <h3 className="text-xl font-semibold text-[#0A2540]">Map View</h3>
+        </Card>
+
+        <Card
+          onClick={() => onNavigate("hostDashboard")}
+          className="p-8 text-center border-2 border-gray-200 hover:shadow-lg transition cursor-pointer"
+        >
+          <TrendingUp className="w-9 h-9 text-[#06B6D4] mx-auto mb-3" />
+          <h3 className="text-xl font-semibold text-[#0A2540]">Host</h3>
+        </Card>
+
+        <Card
+          onClick={() => onNavigate("bookings")}
+          className="p-8 text-center border-2 border-gray-200 hover:shadow-lg transition cursor-pointer"
+        >
+          <Calendar className="w-9 h-9 text-[#06B6D4] mx-auto mb-3" />
+          <h3 className="text-xl font-semibold text-[#0A2540]">My Bookings</h3>
+        </Card>
+
+      </div>
+
+      {/* FEATURED EVENTS */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-semibold text-[#0A2540]">
+          Featured Events
+        </h2>
+        <button className="text-[#06B6D4] font-medium hover:underline">
+          View All
+        </button>
+      </div>
+
+      {/* EVENTS GRID */}
+      <div className="grid md:grid-cols-2 gap-10 mb-14">
+        {featuredEvents.map((e: any, index) => (
+          <Card
+            key={`${e.id}-${index}`}
+            className="overflow-hidden border hover:shadow-lg transition cursor-pointer"
+            onClick={() => onNavigate("map", { event: e })}
+          >
+            {/* IMAGE */}
+            <div className="relative h-56">
+              <ImageWithFallback
+                src={e.image}
+                alt={e.name}
+                className="w-full h-full object-cover"
+              />
+              <Badge className="absolute top-4 right-4 bg-[#06B6D4] text-white text-sm">
+                {e.spotsAvailable} spots
+              </Badge>
             </div>
-            <TrendingUp className="w-5 h-5 text-[#06B6D4]" />
+
+            {/* CONTENT */}
+            <CardContent className="p-6">
+              <h3 className="text-xl font-semibold text-[#0A2540] mb-2">
+                {e.name}
+              </h3>
+
+              <div className="flex items-center text-gray-600 mb-1">
+                <MapPin className="w-5 h-5 mr-1" />
+                <span>{e.venue}</span>
+              </div>
+
+              <div className="flex items-center text-gray-600 mb-4">
+                <Calendar className="w-5 h-5 mr-1" />
+                <span>{e.date}</span>
+              </div>
+
+              <div className="flex items-center justify-between">
+                <span className="text-[#0A2540]">
+                  From{" "}
+                  <span className="text-2xl font-semibold">
+                    ${e.priceFrom}
+                  </span>
+                </span>
+
+                <Button className="bg-[#06B6D4] hover:bg-[#0891b2] text-white">
+                  Find Parking
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+
+      {/* LOAD MORE */}
+      <div className="flex justify-center mb-20">
+        <Button
+          disabled={loading}
+          onClick={() => setPage((prev) => prev + 1)}
+          className="px-6 py-3 bg-[#06B6D4] text-white rounded-lg hover:bg-[#0891b2] disabled:opacity-50"
+        >
+          {loading ? "Loading..." : "Load More Venues"}
+        </Button>
+      </div>
+
+      {/* Figma CTA */}
+      <Card className="bg-gradient-to-r from-[#0A2540] to-[#134E6F] text-white shadow-lg rounded-xl mb-32">
+        <CardContent className="px-8 py-8 flex justify-between items-center">
+          <div>
+            <h3 className="text-xl font-semibold mb-2">Become a Host</h3>
+            <p className="text-cyan-100 mb-3">
+              Turn your driveway into extra income on event days
+            </p>
+
+            <Button
+              onClick={() => onNavigate("hostDashboard")}
+              className="bg-[#06B6D4] hover:bg-[#0891B2] text-white rounded-md px-6 py-2"
+            >
+              List Your Spot
+            </Button>
           </div>
 
-          <div className="mt-6 grid md:grid-cols-2 gap-5">
-            {featuredEvents.map((event) => (
-              <Card
-                key={event.id}
-                className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-gray-200"
-                onClick={() => onNavigate('map', { event, venue: allVenues.find(v => v.name === event.venue) })}
-              >
-                <div className="relative aspect-[16/9]">
-                  <ImageWithFallback src={event.image} alt={event.name} className="absolute inset-0 object-cover w-full h-full" />
-                  <Badge className="absolute top-3 right-3 bg-[#06B6D4] text-white border-0">{event.spotsAvailable} spots</Badge>
-                </div>
-                <CardContent className="p-4">
-                  <h3 className="text-[#0A2540] font-medium">{event.name}</h3>
-                  <div className="flex items-center text-gray-600 mt-1">
-                    <MapPin className="w-4 h-4 mr-1" /> {event.venue}
-                  </div>
-                  <div className="flex items-center justify-between mt-2">
-                    <div className="flex items-center text-gray-600">
-                      <Calendar className="w-4 h-4 mr-1" /> {event.date}
-                    </div>
-                    <span className="text-[#06B6D4] font-medium">From ${event.priceFrom}</span>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </div>
-      </div>
+          <ImageWithFallback
+            src="https://images.unsplash.com/photo-1630350215986-ddaf3124eeb1?q=80&w=400"
+            alt="Driveway"
+            className="w-28 h-28 rounded-lg object-cover hidden md:block"
+          />
+        </CardContent>
+      </Card>
+
     </div>
   );
 }
