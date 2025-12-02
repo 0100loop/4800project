@@ -1,14 +1,6 @@
 import express from "express";
 import cors from "cors";
 
-<<<<<<< HEAD
-import healthRouter from "./routes/health.js";
-import authRouter from "./routes/auth.js";
-import listingsRouter from "./routes/listings.js";
-import bookingsRouter from "./routes/bookings.js";
-import eventsRouter from "./routes/events.js";
-import spotsRouter from "./routes/spots.js";
-=======
 import healthRouter from './routes/health.js';
 import authRouter from './routes/auth.js';
 import listingsRouter from './routes/listings.js';
@@ -16,7 +8,6 @@ import bookingsRouter from './routes/bookings.js';
 import eventsRouter from './routes/events.js';
 import spotsRouter from './routes/spots.js';
 import paymentsRouter from './routes/payments.js';
->>>>>>> b496d64 (Add Stripe checkout flow with success/cancel pages)
 
 const app = express();
 app.use(express.json());
@@ -35,12 +26,6 @@ app.use("/api/listings", listingsRouter);
 app.use("/api/bookings", bookingsRouter);
 app.use("/api/events", eventsRouter);
 app.use("/api/spots", spotsRouter);
-app.use('/api/health', healthRouter);
-app.use('/api/auth', authRouter);
-app.use('/api/listings', listingsRouter);
-app.use('/api/bookings', bookingsRouter);
-app.use('/api/events', eventsRouter);
-app.use('/api/spots', spotsRouter);
 app.use('/api/payments', paymentsRouter);
 
 export default app;
