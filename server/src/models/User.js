@@ -12,6 +12,9 @@ const UserSchema = new mongoose.Schema({
   location: { type: String },
 
   memberSince: { type: Date, default: Date.now },
+resetPasswordToken: String,
+resetPasswordExpire: Date,
+
 });
 
 export default mongoose.model("User", UserSchema);

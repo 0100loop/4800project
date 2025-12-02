@@ -27,7 +27,7 @@ export default function Login() {
 
       setToken(data.token);
 
-      // store user info
+      // store user info if provided
       if (data.user) {
         localStorage.setItem("name", data.user.name || "");
         localStorage.setItem("email", data.user.email || "");
@@ -108,7 +108,7 @@ export default function Login() {
                   required
                   placeholder="you@example.com"
                   className="w-full pl-11 pr-4 py-3 border border-gray-300 rounded-lg 
-                            focus:ring-2 focus:ring-[#06B6D4] text-gray-900 placeholder-gray-400"
+                             focus:ring-2 focus:ring-[#06B6D4] text-gray-900 placeholder-gray-400"
                 />
               </div>
             </div>
@@ -127,7 +127,7 @@ export default function Login() {
                   required
                   placeholder="••••••••"
                   className="w-full pl-11 pr-11 py-3 border border-gray-300 rounded-lg 
-                            focus:ring-2 focus:ring-[#06B6D4] text-gray-900 placeholder-gray-400"
+                             focus:ring-2 focus:ring-[#06B6D4] text-gray-900 placeholder-gray-400"
                 />
 
                 <button
@@ -140,12 +140,22 @@ export default function Login() {
               </div>
             </div>
 
+            {/* FORGOT PASSWORD LINK */}
+            <div className="text-right">
+              <Link
+                to="/forgot-password"
+                className="text-[#06B6D4] hover:underline text-sm font-medium"
+              >
+                Forgot password?
+              </Link>
+            </div>
+
             {/* SIGN IN BUTTON */}
             <Button className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white py-3">
               {loading ? "Signing in..." : "Sign in"}
             </Button>
 
-            {/* GOOGLE LOGIN — EXACT MATCH */}
+            {/* GOOGLE LOGIN */}
             <button
               type="button"
               onClick={() => (window.location.href = "http://localhost:5000/api/auth/google")}
@@ -162,7 +172,7 @@ export default function Login() {
             </button>
 
             {/* SIGNUP LINK */}
-            <div className="text-center text-sm text-gray-600">
+            <div className="text-center text-sm text-gray-600 pt-2">
               Don’t have an account?{" "}
               <Link to="/signup" className="text-[#06B6D4] hover:underline">
                 Sign up
@@ -170,9 +180,9 @@ export default function Login() {
             </div>
 
           </form>
-
         </div>
       </div>
     </div>
   );
 }
+

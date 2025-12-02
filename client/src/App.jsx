@@ -2,6 +2,8 @@ import AuthSuccess from "./pages/Auth/AuthSuccess";
 import { useState } from "react";
 import { Routes, Route, useLocation } from "react-router-dom";
 import "./index.css";
+import ForgotPassword from "./pages/Auth/ForgotPassword";
+
 
 import { HomeScreen } from "./figma/HomeScreen";
 import { MapView } from "./figma/MapView";
@@ -44,6 +46,8 @@ export default function App() {
         {/* AUTH ROUTES */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
+
         <Route path="/auth-success" element={<AuthSuccess />} />
 
         {/* MAIN APP ROUTE (protected) */}
