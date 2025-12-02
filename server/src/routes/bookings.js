@@ -31,15 +31,10 @@ router.post("/", auth("user"), async (req, res) => {
   }
 });
 
-<<<<<<< HEAD
-// Get bookings - for hosts (by spotId) or guests (by userId)
-router.get("/", auth(), async (req, res) => {
-=======
 /* ======================================================
     GET MY BOOKINGS (USER ONLY)
 ====================================================== */
 router.get("/", auth("user"), async (req, res) => {
->>>>>>> c02acb4143d731f40199193eae81173d0c596861
   try {
     const bookings = await Booking.find({ userId: req.user.id })
       .sort({ eventDate: -1 });

@@ -1,11 +1,11 @@
 // src/figma/HostDashboard.tsx
-
-import { useEffect, useState } from "react";
-import { ArrowLeft, MapPin, Calendar, DollarSign, TrendingUp, Settings } from "lucide-react";
 import { Button } from "../ui/button";
-import { Card } from "../ui/card";
+import { Card, CardContent } from "../ui/card";
 import { apiFetch } from "../lib/api";
 import { Badge } from "../ui/badge";
+import { useEffect, useState } from "react";
+import { ChevronLeft,ArrowLeft, MapPin, Calendar, DollarSign, TrendingUp, Settings, Users} from "lucide-react";
+
 
 interface HostDashboardProps {
   onNavigate: (view: string, data?: any) => void;
@@ -65,7 +65,6 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
   }
 
   return (
-<<<<<<< HEAD
     <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white">
       {/* Header */}
           <div className="w-full bg-[#0A2540] p-4">
@@ -98,11 +97,13 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
           {/* Stats */}
           <div className="grid grid-cols-3 gap-3 ">
           <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            
             <CardContent className="p-4 text-center">
               <DollarSign className="w-6 h-6 text-green-600 mx-auto mb-2" />
               <div className="text-3xl text-green-700">$705</div>
               <p className="text-xs text-green-600 mt-1">Total Earnings</p>
             </CardContent>
+      
             </Card>
             <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
               <CardContent className="p-4 text-center">
@@ -120,39 +121,6 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
           </Card>
 
           </div>
-=======
-    <div className="min-h-screen bg-white">
-
-      {/* HEADER */}
-      <div className="bg-[#0A2540] text-white px-6 py-10 pb-16">
-        <div className="flex items-center justify-between mb-6">
-          <ArrowLeft className="cursor-pointer" onClick={() => onNavigate("home")} />
-          <h2 className="text-xl font-semibold flex-1 text-center">Host Dashboard</h2>
-          <Settings className="cursor-pointer" />
-        </div>
-
-        <p className="text-center text-cyan-100 mb-8">Manage your parking spots</p>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-4xl mx-auto">
-          <Card className="bg-[#D6F4E4] px-6 py-6 text-center rounded-xl shadow-sm">
-            <DollarSign className="mx-auto mb-2 w-6 h-6 text-[#0A2540]" />
-            <p className="text-3xl font-bold text-[#0A2540]">${totalEarnings}</p>
-            <p className="text-sm text-[#0A2540]">Total Earnings</p>
-          </Card>
-
-          <Card className="bg-[#DCEBFF] px-6 py-6 text-center rounded-xl shadow-sm">
-            <TrendingUp className="mx-auto mb-2 w-6 h-6 text-[#0A2540]" />
-            <p className="text-3xl font-bold text-[#0A2540]">{totalBookings}</p>
-            <p className="text-sm text-[#0A2540]">Total Bookings</p>
-          </Card>
-
-          <Card className="bg-[#FFE6F2] px-6 py-6 text-center rounded-xl shadow-sm">
-            <TrendingUp className="mx-auto mb-2 w-6 h-6 text-[#0A2540]" />
-            <p className="text-3xl font-bold text-[#0A2540]">{avgRating}</p>
-            <p className="text-sm text-[#0A2540]">Avg Rating</p>
-          </Card>
->>>>>>> c02acb4143d731f40199193eae81173d0c596861
         </div>
       </div>
 

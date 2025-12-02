@@ -26,19 +26,6 @@ export default function MyBookings({ onNavigate }: MyBookingsProps) {
   useEffect(() => {
     async function load() {
       try {
-<<<<<<< HEAD
-        setLoading(true);
-        setError(null);
-        
-        const data = await apiFetch('http://localhost:5000/api/bookings', {
-          method: 'GET',
-          auth: true,
-        });
-        
-        console.log('Bookings loaded:', data);
-        setBookings(data || []);
-        setLoading(false);
-=======
         const data = await apiFetch("/api/bookings", { auth: true });
         const arr: Booking[] = Array.isArray(data) ? data : [];
 
@@ -53,7 +40,6 @@ export default function MyBookings({ onNavigate }: MyBookingsProps) {
         );
 
         setBookings(arr);
->>>>>>> c02acb4143d731f40199193eae81173d0c596861
       } catch (err) {
         console.error("Error loading bookings:", err);
       } finally {
@@ -103,28 +89,9 @@ export default function MyBookings({ onNavigate }: MyBookingsProps) {
     </Card>
   );
 
-<<<<<<< HEAD
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white">
-      {/* Header */}
-      <div className="bg-[#0A2540] text-white px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-4 mb-6">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => onNavigate('home')}
-              className="text-white hover:bg-white/10 -ml-2"
-            >
-              <ArrowLeft className="w-5 h-5" />
-            </Button>
-            <h1 className="text-white text-3xl">My Bookings</h1>
-          </div>
-=======
   if (loading) {
     return <div className="min-h-screen p-10 text-center">Loading…</div>;
   }
->>>>>>> c02acb4143d731f40199193eae81173d0c596861
 
   return (
     <div className="min-h-screen bg-white">

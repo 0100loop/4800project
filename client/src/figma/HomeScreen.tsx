@@ -83,10 +83,9 @@ export function HomeScreen({ onNavigate }) {
           onClick={() => onNavigate("bookings")}
           className="p-8 text-center hover:shadow-md transition cursor-pointer border-2 border-gray-200"
         >
-<<<<<<< HEAD
           <Calendar className="w-6 h-6 text-[#06B6D4]" />
           <span className="text-[#000]">My Bookings</span>
-        </Button>
+        </Card>
       </div>
 
       {/* Featured Events */}
@@ -206,10 +205,8 @@ export function HomeScreen({ onNavigate }) {
                </div>
              
           </CardContent>
-=======
           <Calendar className="w-8 h-8 text-[#06B6D4] mx-auto mb-3" />
           <h3 className="text-lg text-[#0A2540] font-medium">My Bookings</h3>
->>>>>>> c02acb4143d731f40199193eae81173d0c596861
         </Card>
       </div>
 
@@ -218,7 +215,7 @@ export function HomeScreen({ onNavigate }) {
         <button className="text-[#06B6D4] font-medium hover:underline">View All</button>
       </div>
 
-      <div className="grid md:grid-cols-2 gap-8 mb-10">
+      /*<div className="grid md:grid-cols-2 gap-8 mb-10">
         {featuredEvents.map((e, index) => (
           <Card
             key={index}  // UNIQUE KEY FIX
@@ -272,7 +269,7 @@ export function HomeScreen({ onNavigate }) {
           {loading ? "Loading..." : "Load More Venues"}
         </button>
       </div>
-{/* CTA – Become a Host */}
+
 <div className="w-full flex justify-center mt-20 mb-20">
   <div className="w-full md:w-[900px] bg-gradient-to-r from-[#0A2540] to-[#134E6F] rounded-xl p-8 flex items-center justify-between shadow-lg">
     <div>
@@ -296,7 +293,7 @@ export function HomeScreen({ onNavigate }) {
       className="w-28 h-28 rounded-lg object-cover hidden md:block"
     />
   </div>
-</div>
+</div> 
 
 
     </div>
