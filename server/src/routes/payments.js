@@ -2,6 +2,7 @@ import express from "express";
 import Stripe from "stripe";
 import Booking from "../models/Booking.js";
 import Listing from "../models/Listing.js";
+import Spot from "../models/Spot.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
@@ -27,48 +28,37 @@ const ensureStripeConfigured = (res) => {
   return true;
 };
 
-const calculateBookingTotals = (start, end, pricePerHour = 10) => {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-
-  if (Number.isNaN(startDate.getTime()) || Number.isNaN(endDate.getTime())) {
-    throw new Error("Invalid start or end time");
-  }
-
-  if (endDate <= startDate) {
-    throw new Error("End time must be after start time");
-  }
-
-  const hours = Math.max(
-    1,
-    Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60))
-  );
-  const totalPrice = Math.round(hours * pricePerHour);
-
-  return { hours, totalPrice, startDate, endDate };
-};
-
 router.post("/checkout-session", auth("user"), async (req, res) => {
   if (!ensureStripeConfigured(res)) return;
 
   try {
-    const { listingId, start, end } = req.body;
-    if (!listingId || !start || !end) {
-      return res
-        .status(400)
-        .json({ error: "listingId, start, and end are required" });
+    const { listingId } = req.body;
+    if (!listingId) {
+      return res.status(400).json({ error: "listingId is required" });
     }
 
-    const listing = await Listing.findById(listingId);
-    if (!listing || !listing.isActive) {
+    const listing = await Listing.findById(listingId).populate("spotId");
+    if (!listing || !listing.isActive || listing.status !== "active") {
       return res.status(404).json({ error: "Listing unavailable" });
     }
 
-    const { hours, totalPrice, startDate, endDate } = calculateBookingTotals(
-      start,
-      end,
-      listing.pricePerHour ?? 10
-    );
+    // Check if there's space available
+    if (listing.bookedSpaces >= listing.spacesAvailable) {
+      return res.status(409).json({ error: "Listing is full" });
+    }
+
+    const spot = await Spot.findById(listing.spotId);
+    if (!spot) {
+      return res.status(404).json({ error: "Spot not found for this listing" });
+    }
+
+    // Use the listing's price (set by host)
+    const totalPrice = listing.price;
+
+    // Format date/time for display
+    const listingDate = new Date(listing.date);
+    const dateStr = listingDate.toLocaleDateString();
+    const timeRange = `${listing.startTime} - ${listing.endTime}`;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
@@ -76,10 +66,10 @@ router.post("/checkout-session", auth("user"), async (req, res) => {
       customer_email: req.user.email || undefined,
       metadata: {
         listingId: listing._id.toString(),
+        spotId: listing.spotId.toString(),
         userId: req.user.id,
-        start: startDate.toISOString(),
-        end: endDate.toISOString(),
-        hours: hours.toString(),
+        eventName: listing.eventName || "Parking Reservation",
+        eventDate: listing.date.toISOString(),
         totalPrice: totalPrice.toString(),
       },
       line_items: [
@@ -89,8 +79,8 @@ router.post("/checkout-session", auth("user"), async (req, res) => {
             currency: DEFAULT_CURRENCY,
             unit_amount: totalPrice * 100,
             product_data: {
-              name: listing.title || "Parking reservation",
-              description: `${hours} hour reservation`,
+              name: spot.title || "Parking reservation",
+              description: `${dateStr} • ${timeRange}${listing.eventName ? ` • ${listing.eventName}` : ""}`,
             },
           },
         },
@@ -153,22 +143,45 @@ router.post("/confirm", auth("user"), async (req, res) => {
       return res.json({ booking });
     }
 
-    const { listingId, start, end, totalPrice } = session.metadata || {};
-    if (!listingId || !start || !end || !totalPrice) {
+    const { listingId, spotId, eventName, eventDate, totalPrice } = session.metadata || {};
+    if (!listingId || !spotId || !totalPrice) {
       return res
         .status(400)
         .json({ error: "Session metadata incomplete, cannot create booking" });
     }
 
+    // Get listing to check availability and update bookedSpaces
+    const listing = await Listing.findById(listingId);
+    if (!listing) {
+      return res.status(404).json({ error: "Listing not found" });
+    }
+
+    if (listing.bookedSpaces >= listing.spacesAvailable) {
+      return res.status(409).json({ error: "Listing is now full" });
+    }
+
+    // Get spot for eventVenue
+    const spot = await Spot.findById(spotId);
+    if (!spot) {
+      return res.status(404).json({ error: "Spot not found" });
+    }
+
     booking = await Booking.create({
       userId: req.user.id,
       listingId,
-      start: new Date(start),
-      end: new Date(end),
+      spotId,
+      eventName: eventName || "Parking Reservation",
+      eventDate: eventDate || new Date(listing.date).toISOString(),
+      eventVenue: spot.address || "Location TBD",
       totalPrice: Number(totalPrice),
-      status: "paid",
-      paymentId: paymentIntentId,
     });
+
+    // Update listing's bookedSpaces count
+    listing.bookedSpaces += 1;
+    if (listing.bookedSpaces >= listing.spacesAvailable) {
+      listing.status = "full";
+    }
+    await listing.save();
 
     res.json({ booking });
   } catch (e) {

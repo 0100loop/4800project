@@ -20,14 +20,12 @@ export interface CheckoutSessionResponse {
 }
 
 export async function createCheckoutSession(
-  listingId: string,
-  start: string,
-  end: string
+  listingId: string
 ): Promise<CheckoutSessionResponse> {
   const res = await fetch(`${API_URL}/payments/checkout-session`, {
     method: "POST",
     headers: getAuthHeaders(),
-    body: JSON.stringify({ listingId, start, end }),
+    body: JSON.stringify({ listingId }),
   });
 
   const data = await res.json();
