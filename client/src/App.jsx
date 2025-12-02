@@ -4,11 +4,12 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import "./index.css";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 
+
 import { HomeScreen } from "./figma/HomeScreen";
-import MapView from "./figma/MapView";   // ✔ FIXED DEFAULT IMPORT
+import { MapView } from "./figma/MapView";
 import { HostDashboard } from "./figma/HostDashboard";
 import { BookingConfirmation } from "./figma/BookingConfirmation";
-import MyBookings from "./figma/MyBookings";
+import MyBookings from "./figma/MyBookings";         // ✔ FIXED DEFAULT IMPORT
 import { UserProfile } from "./figma/UserProfile";
 import { SpotManagement } from "./figma/SpotManagement";
 import { CreateListing } from "./figma/CreateListing";
@@ -23,11 +24,11 @@ import { apiFetch } from "./lib/api";
 export default function App() {
   const location = useLocation();
 
-  // hide navbar on auth pages
+  // Hide navbar on login/signup/auth-success
   const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
-  // screen switching (legacy system)
+  // Old navigation system inside the protected area
   const [view, setView] = useState("home");
   const [data, setData] = useState(null);
 
@@ -41,14 +42,15 @@ export default function App() {
       {showNavbar && <Navbar onNavigate={onNavigate} />}
 
       <Routes>
-        
+
         {/* AUTH ROUTES */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-        <Route path="/forgot-password" element={<ForgotPassword />} />
+<Route path="/forgot-password" element={<ForgotPassword />} />
+
         <Route path="/auth-success" element={<AuthSuccess />} />
 
-        {/* MAIN APP ROUTE (PROTECTED) */}
+        {/* MAIN APP ROUTE (protected) */}
         <Route
           path="*"
           element={
@@ -57,7 +59,7 @@ export default function App() {
                 {view === "home" && <HomeScreen onNavigate={onNavigate} />}
 
                 {view === "map" && (
-                  <MapView eventData={data} onNavigate={onNavigate} />
+                  <MapView onNavigate={onNavigate} viewData={data} />
                 )}
 
                 {view === "host" && (
@@ -101,3 +103,4 @@ export default function App() {
     </>
   );
 }
+

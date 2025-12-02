@@ -1,47 +1,31 @@
-// src/app.js
 import express from "express";
 import cors from "cors";
-import fetch from "node-fetch";
+
+import healthRouter from './routes/health.js';
+import authRouter from './routes/auth.js';
+import listingsRouter from './routes/listings.js';
+import bookingsRouter from './routes/bookings.js';
+import eventsRouter from './routes/events.js';
+import spotsRouter from './routes/spots.js';
+import paymentsRouter from './routes/payments.js';
 
 const app = express();
-
-app.use(cors());
 app.use(express.json());
 
-// ---------------------------------------------
-// ⭐ HEALTH CHECK
-// ---------------------------------------------
-app.get("/", (req, res) => {
-  res.send("SeatGeek Proxy Running");
-});
+// FIXED CORS 🔥🔥🔥
+app.use(
+  cors({
+    origin: "http://localhost:5173",
+    credentials: true,
+  })
+);
 
-// ---------------------------------------------
-// ⭐ SEATGEEK EVENTS PROXY
-// ---------------------------------------------
-app.get("/sg/events", async (req, res) => {
-  try {
-    const CLIENT_ID = process.env.SEATGEEK_CLIENT_ID;
-    const CLIENT_SECRET = process.env.SEATGEEK_CLIENT_SECRET;
-
-    if (!CLIENT_ID || !CLIENT_SECRET) {
-      return res.status(500).json({ error: "Missing SeatGeek API Keys" });
-    }
-
-    const params = new URLSearchParams(req.query);
-    params.append("client_id", CLIENT_ID);
-    params.append("client_secret", CLIENT_SECRET);
-
-    const sgURL = `https://api.seatgeek.com/2/events?${params.toString()}`;
-
-    const response = await fetch(sgURL);
-    const data = await response.json();
-
-    return res.json(data);
-
-  } catch (err) {
-    console.error("SeatGeek Proxy Error:", err);
-    return res.status(500).json({ error: "Proxy Error" });
-  }
-});
+app.use("/api/health", healthRouter);
+app.use("/api/auth", authRouter);
+app.use("/api/listings", listingsRouter);
+app.use("/api/bookings", bookingsRouter);
+app.use("/api/events", eventsRouter);
+app.use("/api/spots", spotsRouter);
+app.use('/api/payments', paymentsRouter);
 
 export default app;

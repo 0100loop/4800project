@@ -9,13 +9,12 @@ async function start() {
     await mongoose.connect(process.env.MONGO_URI);
     console.log("MongoDB connected");
   } catch (error) {
-    console.error("⚠️ MongoDB not connected. Continuing without DB.");
+    console.error("⚠️ MongoDB not connected. Continuing without DB for now.");
     console.error(error.message);
   }
 
   app.listen(PORT, () => {
     console.log(`API listening on http://localhost:${PORT}`);
-    console.log(`✔ SeatGeek Proxy ready at http://localhost:${PORT}/sg/events`);
   });
 }
 
