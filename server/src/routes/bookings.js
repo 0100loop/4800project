@@ -62,7 +62,7 @@ router.post("/", auth("user"), async (req, res) => {
 });
 
 // Get bookings - for hosts (by spotId) or guests (by userId)
-router.get("/", auth("user"), async (req, res) => {
+router.get("/", auth(), async (req, res) => {
   try {
     const { spotId, upcoming } = req.query;
 

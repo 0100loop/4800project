@@ -280,27 +280,28 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
           </div>
 
         {/* Host CTA */}
-        <Card className="mt-8 mb-20 md:mb-8 bg-gradient-to-r from-[#0A2540] to-[#134E6F] text-white border-0">
+        <Card className="mt-8 mb-20 md:mb-8 bg-gradient-to-r bg-[#0A2540] text-white border-0">
           <CardContent className="p-6">
-            <div className="flex items-start justify-between gap-4">
+           
+            <div className="flex items-center justify-between">
               <div className="flex-1">
                 <h3 className="text-2xl text-white mb-2">Become a Host</h3>
                 <p className="text-cyan-100 mb-4">
-                  Turn your driveway into extra income on event days
-                </p>
+                  Turn your driveway into extra income on event days    
+                </p>   
                 <Button 
                   onClick={() => onNavigate('host')}
-                  className="bg-[#06B6D4] hover:bg-[#0891B2] text-white"
+                  className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg:not([class*='size-'])]:size-4 shrink-0 [&_svg]:shrink-0 outline-none focus-visible:border-ring focus-visible:ring-ring/50 focus-visible:ring-[3px] aria-invalid:ring-destructive/20 dark:aria-invalid:ring-destructive/40 aria-invalid:border-destructive h-9 px-4 py-2 has-[>svg]:px-3 bg-white text-[#06B6D4] hover:bg-gray-100"
                 >
+                  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-map-pin w-4 h-4 mr-2 from-[#06B6D4] to-[#0891b2]" aria-hidden="true"><path d="M20 10c0 4.993-5.539 10.193-7.399 11.799a1 1 0 0 1-1.202 0C9.539 20.193 4 14.993 4 10a8 8 0 0 1 16 0"></path><circle cx="12" cy="10" r="3"></circle></svg>
                   List Your Spot
                 </Button>
+                
               </div>
-              <ImageWithFallback
-                src="https://images.unsplash.com/photo-1630350215986-ddaf3124eeb1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3Nzg4Nzd8MHwxfHNlYXJjaHwxfHxkcml2ZXdheSUyMGhvdXNlfGVufDF8fHx8MTc1OTc4MTQ0OHww&ixlib=rb-4.1.0&q=80&w=1080&utm_source=figma&utm_medium=referral"
-                alt="Host driveway"
-                className="w-24 h-24 rounded-lg object-cover hidden md:block"
-              />
-            </div>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" className="lucide lucide-trending-up w-16 h-16 opacity-50" aria-hidden="true"><path d="M16 7h6v6"></path><path d="m22 7-8.5 8.5-5-5L2 17"></path></svg>
+          
+               </div>
+             
           </CardContent>
         </Card>
       </div>

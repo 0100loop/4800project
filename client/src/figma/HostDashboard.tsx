@@ -350,9 +350,9 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-[#F0F9FF] to-white">
       {/* Header */}
-      <div className="bg-[#0A2540] text-white px-4 py-6">
-        <div className="max-w-4xl mx-auto">
-          <div className="flex items-center gap-3 mb-4">
+          <div className="w-full bg-[#0A2540] p-4">
+            <div className="max-w-4xl mx-auto">
+           <div className="flex items-center gap-3 mb-4">
             <Button
               variant="ghost"
               size="icon"
@@ -362,7 +362,7 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
               <ChevronLeft className="w-5 h-5" />
             </Button>
             <div className="flex-1">
-              <h2 className="text-white">Host Dashboard</h2>
+              <h2 className="text-white text-3xl">Host Dashboard</h2>
               <p className="text-cyan-100 text-sm">Manage your parking spots</p>
             </div>
             <Button
@@ -373,30 +373,34 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
               <Settings className="w-5 h-5" />
             </Button>
           </div>
-
+          </div>
+          </div>
+        <div className="max-w-4xl mx-auto">
+          <div className="text-white px-4 py-6">
           {/* Stats */}
-          <div className="grid grid-cols-3 gap-3">
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="p-3 text-center">
-                <DollarSign className="w-5 h-5 text-[#06B6D4] mx-auto mb-1" />
-                <div className="text-2xl text-white">$705</div>
-                <p className="text-xs text-cyan-100">Total Earnings</p>
+          <div className="grid grid-cols-3 gap-3 ">
+          <Card className="bg-gradient-to-br from-green-50 to-green-100 border-green-200">
+            <CardContent className="p-4 text-center">
+              <DollarSign className="w-6 h-6 text-green-600 mx-auto mb-2" />
+              <div className="text-3xl text-green-700">$705</div>
+              <p className="text-xs text-green-600 mt-1">Total Earnings</p>
+            </CardContent>
+            </Card>
+            <Card className="bg-gradient-to-br from-blue-50 to-blue-100 border-blue-200">
+              <CardContent className="p-4 text-center">
+                <Users className="w-6 h-6 text-blue-600 mx-auto mb-2" />
+                <div className="text-3xl text-blue-700">41</div>
+                <p className="text-xs text-blue-600 mt-1">Total Bookings</p>
               </CardContent>
             </Card>
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="p-3 text-center">
-                <Users className="w-5 h-5 text-[#06B6D4] mx-auto mb-1" />
-                <div className="text-2xl text-white">41</div>
-                <p className="text-xs text-cyan-100">Total Bookings</p>
-              </CardContent>
-            </Card>
-            <Card className="bg-white/10 border-white/20 backdrop-blur">
-              <CardContent className="p-3 text-center">
-                <TrendingUp className="w-5 h-5 text-[#06B6D4] mx-auto mb-1" />
-                <div className="text-2xl text-white">4.9</div>
-                <p className="text-xs text-cyan-100">Avg Rating</p>
-              </CardContent>
-            </Card>
+          <Card className="bg-gradient-to-br from-purple-50 to-purple-100 border-purple-200">
+            <CardContent className="p-4 text-center">
+              <TrendingUp className="w-6 h-6 text-purple-600 mx-auto mb-2" />
+              <div className="text-3xl text-purple-700">4.9</div>
+              <p className="text-xs text-purple-600 mt-1">Avg Rating</p>
+            </CardContent>
+          </Card>
+
           </div>
         </div>
       </div>

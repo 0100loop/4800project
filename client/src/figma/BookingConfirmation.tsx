@@ -75,7 +75,7 @@ export function BookingConfirmation({
   try {
     // Send to your backend
     const token = localStorage.getItem("token"); // or sessionStorage
-    const res = await fetch("/api/bookings", {
+    const res = await fetch("http://localhost:5000/api/bookings", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

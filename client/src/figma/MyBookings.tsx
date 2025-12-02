@@ -21,7 +21,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
         setLoading(true);
         setError(null);
         
-        const data = await apiFetch('/api/bookings', {
+        const data = await apiFetch('http://localhost:5000/api/bookings', {
           method: 'GET',
           auth: true,
         });
@@ -202,7 +202,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-white">My Bookings</h1>
+            <h1 className="text-white text-3xl">My Bookings</h1>
           </div>
 
           {/* Tabs */}
