@@ -14,7 +14,7 @@ export default async function sendEmail(to, subject, html) {
       from: `ParkIt <${process.env.EMAIL_USER}>`,
       to,
       subject,
-      html,
+      html,       // <-- now using HTML
     });
 
     console.log("Email sent to:", to);

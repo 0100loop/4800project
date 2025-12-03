@@ -1,8 +1,14 @@
-import { Navigate } from 'react-router-dom';
-import { getToken } from '../lib/api';
+import { Navigate, useLocation } from "react-router-dom";
+import { getToken } from "../lib/api";
 
 export default function ProtectedRoute({ children }) {
   const token = getToken();
-  if (!token) return <Navigate to="/login" replace />;
-  return children;
+  const location = useLocation();
+
+  if (!token) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return <>{children}</>;
 }
+

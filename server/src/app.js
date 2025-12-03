@@ -1,31 +1,52 @@
 import express from "express";
 import cors from "cors";
+import dotenv from "dotenv";
+import morgan from "morgan";
+import passport from "passport";
+import routes from "./routes/index.js";
 
-import healthRouter from './routes/health.js';
-import authRouter from './routes/auth.js';
-import listingsRouter from './routes/listings.js';
-import bookingsRouter from './routes/bookings.js';
-import eventsRouter from './routes/events.js';
-import spotsRouter from './routes/spots.js';
-import paymentsRouter from './routes/payments.js';
+// Load environment variables
+dotenv.config();
 
 const app = express();
+
+/* =========================================================================
+   CORS CONFIGURATION (⭐ REQUIRED FOR AUTH + COOKIES)
+=========================================================================== */
+const corsOptions = {
+  origin: "http://localhost:5173",
+  credentials: true,
+  methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+  allowedHeaders: ["Content-Type", "Authorization"],
+};
+
+app.use(cors(corsOptions));
+app.options("*", cors(corsOptions)); // Preflight support
+
+/* =========================================================================
+   MIDDLEWARE
+=========================================================================== */
 app.use(express.json());
+app.use(morgan("dev"));
+app.use(passport.initialize());
 
-// FIXED CORS 🔥🔥🔥
-app.use(
-  cors({
-    origin: "http://localhost:5173",
-    credentials: true,
-  })
-);
+/* =========================================================================
+   TEST ROUTE — CONFIRM API IS RUNNING
+=========================================================================== */
+app.get("/", (req, res) => {
+  res.json({ status: "API Running" });
+});
 
-app.use("/api/health", healthRouter);
-app.use("/api/auth", authRouter);
-app.use("/api/listings", listingsRouter);
-app.use("/api/bookings", bookingsRouter);
-app.use("/api/events", eventsRouter);
-app.use("/api/spots", spotsRouter);
-app.use('/api/payments', paymentsRouter);
+/* =========================================================================
+   API ROUTES
+=========================================================================== */
+app.use("/api", routes);
+
+/* =========================================================================
+   404 HANDLER
+=========================================================================== */
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found" });
+});
 
 export default app;

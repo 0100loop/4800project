@@ -6,12 +6,24 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
+import dotenv from "dotenv";
+
+// Load environment variables
+dotenv.config();
 
 const router = express.Router();
 
 /* =========================================================================
    GOOGLE STRATEGY
 =========================================================================== */
+
+// Make sure env vars exist
+if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
+  console.error(
+    "❌ Missing GOOGLE_CLIENT_ID or GOOGLE_CLIENT_SECRET in .env file"
+  );
+}
+
 passport.use(
   new GoogleStrategy(
     {
@@ -43,6 +55,7 @@ passport.use(
 
         done(null, { token, user });
       } catch (err) {
+        console.error("Google OAuth error:", err);
         done(err, null);
       }
     }
@@ -56,11 +69,14 @@ router.post("/signup", async (req, res) => {
   try {
     const { name, email, password, phone, location } = req.body;
 
-    if (!email || !password || !name)
+    if (!email || !password || !name) {
       return res.status(400).json({ error: "Missing required fields." });
+    }
 
     const exists = await User.findOne({ email });
-    if (exists) return res.status(400).json({ error: "Email already exists." });
+    if (exists) {
+      return res.status(400).json({ error: "Email already exists." });
+    }
 
     const passwordHash = await bcrypt.hash(password, 10);
 
@@ -73,9 +89,7 @@ router.post("/signup", async (req, res) => {
       memberSince: new Date(),
     });
 
-    // ------------------------------
-    // SEND WELCOME EMAIL
-    // ------------------------------
+    // Send welcome email
     await sendEmail(
       email,
       "🎉 Welcome to ParkIt!",
@@ -114,8 +128,9 @@ router.post("/login", async (req, res) => {
     const { email, password } = req.body;
 
     const user = await User.findOne({ email });
-    if (!user || !user.passwordHash)
+    if (!user || !user.passwordHash) {
       return res.status(400).json({ error: "Invalid credentials" });
+    }
 
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return res.status(400).json({ error: "Invalid credentials" });
@@ -126,20 +141,21 @@ router.post("/login", async (req, res) => {
 
     res.json({ token, user });
   } catch (err) {
+    console.error("Login error:", err);
     res.status(500).json({ error: "Login failed" });
   }
 });
 
 /* =========================================================================
-   FORGOT PASSWORD
+   FORGOT PASSWORD  (RESTORED SIMPLE VERSION)
 =========================================================================== */
 router.post("/forgot-password", async (req, res) => {
-  const { email } = req.body;
-
   try {
+    const { email } = req.body;
+
     const user = await User.findOne({ email });
 
-    // Security: always return ok
+    // Security: never reveal if user exists
     if (!user) return res.json({ ok: true });
 
     // Generate reset token
@@ -152,35 +168,52 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-    // Send Email
-    await sendEmail(
-      user.email,
-      "ParkIt Password Reset",
-      `
-        <h2>Password Reset Requested</h2>
-        <p>Click the button below to reset your password:</p>
+    // Simple plain-text email
+   await sendEmail(
+  user.email,
+  "ParkIt Password Reset",
+  `
+  <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto;">
 
-        <p><a href="${resetLink}" 
-        style="
-          display:inline-block;
-          padding:10px 20px;
-          background:#06B6D4;
-          color:white;
-          border-radius:8px;
-          text-decoration:none;
-          font-weight:bold;
-        ">Reset Password</a></p>
+    <h2 style="color: #111; font-size: 24px; margin-bottom: 20px;">
+      Password Reset Requested
+    </h2>
 
-        <p>If you did not request this, please ignore this email.</p>
-      `
-    );
+    <p style="font-size: 16px; color: #333; margin-bottom: 24px;">
+      Click the button below to reset your password:
+    </p>
 
-    res.json({ ok: true, message: "Reset link sent." });
+    <a href="${resetLink}" 
+      style="
+        display: inline-block;
+        background: #03B4D8;
+        color: white;
+        padding: 14px 28px;
+        border-radius: 10px;
+        font-size: 17px;
+        font-weight: bold;
+        text-decoration: none;
+        text-align: center;
+      ">
+      Reset Password
+    </a>
+
+    <p style="margin-top: 30px; color: #555; font-size: 14px;">
+      If you did not request this, please ignore this email.
+    </p>
+
+  </div>
+  `
+);
+
+
+    res.json({ ok: true, message: "Reset link sent" });
   } catch (err) {
     console.error("Forgot password error:", err);
-    res.status(500).json({ error: "Failed to send reset email" });
+    res.status(500).json({ error: "Server error" });
   }
 });
+
 
 /* =========================================================================
    GET LOGGED-IN USER
@@ -196,6 +229,7 @@ router.get("/me", async (req, res) => {
 
     res.json({ user });
   } catch (err) {
+    console.error("Token check error:", err);
     res.status(401).json({ error: "Invalid token" });
   }
 });
@@ -224,12 +258,13 @@ router.put("/me", async (req, res) => {
 
     res.json({ user });
   } catch (err) {
+    console.error("Profile update error:", err);
     res.status(500).json({ error: "Failed to update profile" });
   }
 });
 
 /* =========================================================================
-   GOOGLE LOGIN ROUTE + REDIRECT
+   GOOGLE LOGIN + REDIRECT
 =========================================================================== */
 router.get(
   "/google",
@@ -243,11 +278,10 @@ router.get(
     const { token, user } = req.user;
 
     res.redirect(
-      `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(
-        user.name
-      )}&email=${encodeURIComponent(user.email)}&avatar=${encodeURIComponent(
-        user.avatar || ""
-      )}`
+      `http://localhost:5173/auth-success?token=${token}` +
+        `&name=${encodeURIComponent(user.name)}` +
+        `&email=${encodeURIComponent(user.email)}` +
+        `&avatar=${encodeURIComponent(user.avatar || "")}`
     );
   }
 );

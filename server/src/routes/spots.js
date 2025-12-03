@@ -1,171 +1,116 @@
 import express from "express";
-import mongoose from "mongoose";
-import auth from "../middleware/auth.js";
-import fetch from "node-fetch";
 import Spot from "../models/Spot.js";
-import Booking from "../models/Booking.js";
-import User from "../models/User.js";
+import axios from "axios";
 
 const router = express.Router();
 
-/* ================================
-      GET ALL SPOTS (OPTIONAL GEO)
-================================ */
-router.get("/", async (req, res) => {
+/* =============================================
+   CREATE EMPTY SPOT (FIRST STEP)
+   (User presses "+ Add Spot")
+============================================= */
+router.post("/", async (req, res) => {
   try {
-    const { lat, lng, radius } = req.query;
+    const ownerId = req.user?._id;
 
-    let spots;
+    if (!ownerId)
+      return res.status(401).json({ error: "Not authorized" });
 
-    if (lat && lng && radius) {
-      spots = await Spot.find({
-        location: {
-          $near: {
-            $geometry: { type: "Point", coordinates: [Number(lng), Number(lat)] },
-            $maxDistance: Number(radius),
-          },
-        },
-      })
-        .populate("host", "name email")
-        .limit(100);
-    } else {
-      spots = await Spot.find()
-        .populate("host", "name email")
-        .limit(200);
+    // Create empty spot to be completed later
+    const spot = await Spot.create({ owner: ownerId });
+
+    return res.json({ id: spot._id });
+  } catch (err) {
+    console.error("Create Spot Error:", err);
+    res.status(500).json({ error: "Failed to create spot" });
+  }
+});
+
+/* =============================================
+   UPDATE SPOT WITH ADDRESS + STADIUM + PRICE
+   (Called when CreateListing submits)
+============================================= */
+router.put("/:id", async (req, res) => {
+  try {
+    const spotId = req.params.id;
+    const ownerId = req.user?._id;
+
+    const { address, closestStadium, price, spacesAvailable } = req.body;
+
+    // Get lat/lon from address
+    let latitude = null;
+    let longitude = null;
+
+    if (address) {
+      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        address
+      )}`;
+
+      const geoRes = await axios.get(geoURL);
+      if (geoRes.data.length > 0) {
+        latitude = geoRes.data[0].lat;
+        longitude = geoRes.data[0].lon;
+      }
     }
 
-    res.json(spots);
-  } catch (e) {
-    console.error("GET /api/spots error:", e);
-    res.status(500).json({ error: e.message });
-  }
-});
-
-/* ================================
-         GET MY SPOTS
-================================ */
-router.get("/mine", auth("user"), async (req, res) => {
-  try {
-    const spots = await Spot.find({ host: req.user.id })
-      .populate("host", "name email");
-
-    res.json(spots);
-  } catch (e) {
-    console.error("GET /api/spots/mine error:", e);
-    res.status(500).json({ error: "Failed to load user spots" });
-  }
-});
-
-/* ================================
-          GET SPOT BY ID
-================================ */
-router.get("/:id", async (req, res) => {
-  try {
-    const spot = await Spot.findById(req.params.id);
-    if (!spot) return res.status(404).json({ error: "Not found" });
-    res.json(spot);
-  } catch (e) {
-    console.error("GET /api/spots/:id error:", e);
-    res.status(400).json({ error: "Invalid id" });
-  }
-});
-
-/* ================================
-         CREATE NEW SPOT
-================================ */
-router.post("/", auth("user"), async (req, res) => {
-  try {
-    const query = encodeURIComponent(req.body.address);
-
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=us&q=${query}`,
+    const updated = await Spot.findOneAndUpdate(
+      { _id: spotId, owner: ownerId },
       {
-        headers: {
-          "User-Agent": "ParkItApp/1.0 (contact@parkit.dev)",
-        },
-      }
+        address,
+        closestStadium,
+        latitude,
+        longitude,
+        price,
+        spacesAvailable,
+      },
+      { new: true }
     );
 
-    if (!geoRes.ok) {
-      const errText = await geoRes.text();
-      console.error("Geocoding error:", errText);
-      return res.status(400).json({ error: "Failed to reach geocoding service" });
-    }
+    if (!updated)
+      return res.status(400).json({ error: "Spot not found or unauthorized" });
 
-    const geoData = await geoRes.json();
-    if (!geoData.length) {
-      return res.status(400).json({ error: "Could not find location for that address" });
-    }
+    res.json(updated);
 
-    const { lat, lon } = geoData[0];
-
-    const spot = await Spot.create({
-      ...req.body,
-      host: req.user.id,
-      location: {
-        type: "Point",
-        coordinates: [parseFloat(lon), parseFloat(lat)],
-      },
-    });
-
-    res.status(201).json(spot);
-  } catch (e) {
-    console.error("POST /api/spots error:", e);
-    res.status(400).json({ error: e.message });
+  } catch (err) {
+    console.error("Update Spot Error:", err);
+    res.status(500).json({ error: "Failed to update spot" });
   }
 });
 
-/* ================================
-   HOST: VIEW BOOKINGS FOR A SPOT
-================================ */
-router.get("/:spotId/bookings", auth("user"), async (req, res) => {
+/* =============================================
+   GET HOST'S SPOTS
+============================================= */
+router.get("/mine", async (req, res) => {
   try {
-    // Validate spot
-    const spot = await Spot.findById(req.params.spotId);
+    const ownerId = req.user?._id;
 
-    if (!spot) {
-      return res.status(404).json({ message: "Spot not found" });
-    }
-
-    // Check owner
-    if (String(spot.host) !== String(req.user.id)) {
-      return res.status(403).json({ message: "Unauthorized" });
-    }
-
-    // Fetch bookings for this spot
-    const bookings = await Booking.find({ spotId: spot._id })
-      .populate("userId", "name email")
-      .sort({ date: -1 });
-
-    res.json(bookings);
-} catch (err) {
-  console.error("GET spot bookings error:", err);
-  res.status(500).json({ message: "Server error" });
-}
+    const spots = await Spot.find({ owner: ownerId });
+    res.json(spots);
+  } catch (err) {
+    console.error("Load Host Spots Error:", err);
+    res.status(500).json({ error: "Failed to load spots" });
+  }
 });
 
-/* ================================
-   DELETE A SPOT (HOST ONLY)
-================================ */
-router.delete("/:spotId", auth("user"), async (req, res) => {
+/* =============================================
+   DELETE SPOT
+============================================= */
+router.delete("/:id", async (req, res) => {
   try {
-    const spot = await Spot.findById(req.params.spotId);
+    const ownerId = req.user?._id;
+    const spotId = req.params.id;
 
-    if (!spot) {
-      return res.status(404).json({ error: "Spot not found" });
-    }
+    const deleted = await Spot.findOneAndDelete({
+      _id: spotId,
+      owner: ownerId,
+    });
 
-    if (String(spot.host) !== String(req.user.id)) {
-      return res.status(403).json({ error: "Unauthorized" });
-    }
+    if (!deleted)
+      return res.status(404).json({ error: "Spot not found or unauthorized" });
 
-    await Spot.findByIdAndDelete(req.params.spotId);
-
-    res.json({ success: true, message: "Spot deleted successfully" });
-
+    res.json({ success: true });
   } catch (err) {
-    console.error("Delete spot error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Delete Spot Error:", err);
+    res.status(500).json({ error: "Failed to delete spot" });
   }
 });
 

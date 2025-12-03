@@ -1,21 +1,16 @@
-import "dotenv/config";
-import mongoose from "mongoose";
+import http from "http";
 import app from "./app.js";
+import dotenv from "dotenv";
+import { connectDB } from "./database.js";
+
+dotenv.config();
+
+// Connect to MongoDB BEFORE starting server
+connectDB();
 
 const PORT = process.env.PORT || 5000;
+const server = http.createServer(app);
 
-async function start() {
-  try {
-    await mongoose.connect(process.env.MONGO_URI);
-    console.log("MongoDB connected");
-  } catch (error) {
-    console.error("⚠️ MongoDB not connected. Continuing without DB for now.");
-    console.error(error.message);
-  }
-
-  app.listen(PORT, () => {
-    console.log(`API listening on http://localhost:${PORT}`);
-  });
-}
-
-start();
+server.listen(PORT, () => {
+  console.log(`🚀 Server running on http://localhost:${PORT}`);
+});

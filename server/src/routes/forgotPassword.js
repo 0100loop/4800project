@@ -1,41 +1,38 @@
-const express = require("express");
-const crypto = require("crypto");
+import express from "express";
+import bcrypt from "bcrypt";
+import User from "../models/User.js";
+
 const router = express.Router();
-const User = require("../models/User"); // adjust if your User model is somewhere else
-const sendEmail = require("../utils/sendEmail"); // we will make this next
 
-// POST /api/auth/forgot-password
+/**
+ * POST /api/forgot-password
+ * User submits email => send reset link (placeholder demo version)
+ */
 router.post("/", async (req, res) => {
-  const { email } = req.body;
-
   try {
-    const user = await User.findOne({ email });
-    if (!user) {
-      // Do not tell user if email exists for security
-      return res.json({ ok: true });
+    const { email } = req.body;
+
+    if (!email) {
+      return res.status(400).json({ error: "Email is required" });
     }
 
-    // Create token
-    const resetToken = crypto.randomBytes(32).toString("hex");
-    const hashed = crypto.createHash("sha256").update(resetToken).digest("hex");
+    const user = await User.findOne({ email });
 
-    user.resetPasswordToken = hashed;
-    user.resetPasswordExpire = Date.now() + 10 * 60 * 1000; // 10 minutes
-    await user.save();
+    if (!user) {
+      return res.status(404).json({ error: "User not found" });
+    }
 
-    const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
+    // Normally you send email here
+    console.log(`Password reset requested for: ${email}`);
 
-    await sendEmail(
-      user.email,
-      "ParkIt Password Reset",
-      `Click the link below to reset your password:\n\n${resetLink}`
-    );
-
-    res.json({ ok: true, message: "Reset link sent" });
+    res.json({
+      message: "If this email exists, a password reset link has been sent.",
+    });
   } catch (err) {
-    console.error("Forgot password error:", err);
-    res.status(500).json({ error: "Server error" });
+    console.error("Forgot Password Error:", err);
+    res.status(500).json({ error: "Server error processing request" });
   }
 });
 
-module.exports = router;
+export default router;
+

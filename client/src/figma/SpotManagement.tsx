@@ -63,6 +63,33 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
     }
   };
 
+  /* ==========================
+        ADD A NEW SPOT
+  ========================== */
+  const handleAddSpot = async () => {
+    try {
+      // 1️⃣ Create empty spot so we get a real spotId
+      const newSpot = await apiFetch("/api/spots", {
+        method: "POST",
+        body: {},  // You can add address later
+        auth: true,
+      });
+
+      if (!newSpot || !newSpot.id) {
+        alert("Failed to create a new spot.");
+        return;
+      }
+
+      console.log("New spot created:", newSpot.id);
+
+      // 2️⃣ Navigate to CreateListing *with* the valid spotId
+      onNavigate("createListing", { spotId: newSpot.id });
+    } catch (err) {
+      console.error("Failed to create spot:", err);
+      alert("Error creating spot.");
+    }
+  };
+
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
 
@@ -74,7 +101,7 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
 
         <Button
           className="bg-[#06B6D4] hover:bg-[#0891B2] text-white"
-          onClick={() => onNavigate("createListing")}
+          onClick={handleAddSpot}
         >
           + Add Spot
         </Button>
@@ -95,7 +122,7 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
           >
             <CardContent className="p-6 flex items-start justify-between">
 
-              {/* LEFT SIDE */}
+              {/* LEFT */}
               <div className="flex items-start gap-4">
                 <div className="w-14 h-14 bg-[#0A2540] rounded-lg flex items-center justify-center">
                   <MapPin className="text-white w-7 h-7" />
@@ -103,10 +130,12 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
 
                 <div>
                   <h3 className="text-lg font-semibold text-[#0A2540]">
-                    {spot.address}
+                    {spot.address || "No address set"}
                   </h3>
 
-                  <p className="text-gray-600">${spot.price}/event</p>
+                  <p className="text-gray-600">
+                    ${spot.price || "0"}/event
+                  </p>
 
                   <div className="mt-3 flex gap-6 text-sm text-gray-600">
                     <p>
@@ -125,16 +154,16 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
               {/* RIGHT SIDE BUTTONS */}
               <div className="flex flex-col items-end gap-3">
 
-                {/* Active label */}
+                {/* Active */}
                 <Badge className="bg-green-100 text-green-700">
                   Active
                 </Badge>
 
-                {/* Delete button */}
+                {/* Delete */}
                 <Button
                   variant="destructive"
                   className="bg-red-500 text-white hover:bg-red-600"
-                  onClick={() => handleDeleteSpot(spot.id)}   // <--- FIXED HERE
+                  onClick={() => handleDeleteSpot(spot.id)}
                 >
                   Delete Spot
                 </Button>

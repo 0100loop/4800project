@@ -4,12 +4,11 @@ import { Routes, Route, useLocation } from "react-router-dom";
 import "./index.css";
 import ForgotPassword from "./pages/Auth/ForgotPassword";
 
-
 import { HomeScreen } from "./figma/HomeScreen";
 import { MapView } from "./figma/MapView";
 import { HostDashboard } from "./figma/HostDashboard";
 import { BookingConfirmation } from "./figma/BookingConfirmation";
-import MyBookings from "./figma/MyBookings";         // ✔ FIXED DEFAULT IMPORT
+import MyBookings from "./figma/MyBookings";
 import { UserProfile } from "./figma/UserProfile";
 import { SpotManagement } from "./figma/SpotManagement";
 import { CreateListing } from "./figma/CreateListing";
@@ -24,11 +23,9 @@ import { apiFetch } from "./lib/api";
 export default function App() {
   const location = useLocation();
 
-  // Hide navbar on login/signup/auth-success
   const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
-  // Old navigation system inside the protected area
   const [view, setView] = useState("home");
   const [data, setData] = useState(null);
 
@@ -42,15 +39,13 @@ export default function App() {
       {showNavbar && <Navbar onNavigate={onNavigate} />}
 
       <Routes>
-
-        {/* AUTH ROUTES */}
+        {/* AUTH */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
-<Route path="/forgot-password" element={<ForgotPassword />} />
-
+        <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth-success" element={<AuthSuccess />} />
 
-        {/* MAIN APP ROUTE (protected) */}
+        {/* PROTECTED AREA */}
         <Route
           path="*"
           element={
