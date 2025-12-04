@@ -1,8 +1,23 @@
 import express from "express";
-import Spot from "../models/Spot.js";
 import axios from "axios";
+import Spot from "../models/Spot.js";
+import Listing from "../models/Listing.js";
+import { upsertListingFromSpot } from "../utils/listingSync.js";
 
 const router = express.Router();
+
+async function geocodeAddress(address) {
+  if (!address) return null;
+  const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    address
+  )}`;
+  const geoRes = await axios.get(geoURL);
+  if (!geoRes.data.length) return null;
+  return {
+    latitude: Number(geoRes.data[0].lat),
+    longitude: Number(geoRes.data[0].lon),
+  };
+}
 
 /* =============================================
    CREATE SPOT (Public - No Login Required)
@@ -22,36 +37,76 @@ router.post("/", async (req, res) => {
 ============================================= */
 router.put("/:id", async (req, res) => {
   try {
-    const { address, closestStadium, price, spacesAvailable } = req.body;
+    const spot = await Spot.findById(req.params.id);
+    if (!spot) return res.status(404).json({ error: "Spot not found" });
 
-    let latitude = null;
-    let longitude = null;
+    const {
+      hostName,
+      title,
+      description,
+      address,
+      closestStadium,
+      price,
+      spacesAvailable,
+      eventDate,
+      startTime,
+      endTime,
+      amenities,
+    } = req.body;
 
-    if (address) {
-      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
-        address
-      )}`;
-
-      // Respect Nominatim usage policy: set a custom User-Agent
-      const geoRes = await axios.get(geoURL, {
-        headers: {
-          "User-Agent": "ParkItApp/1.0 (contact@parkit.local)",
-        },
-      });
-
-      if (Array.isArray(geoRes.data) && geoRes.data.length > 0) {
-        latitude = Number(geoRes.data[0].lat);
-        longitude = Number(geoRes.data[0].lon);
+    if (address && address !== spot.address) {
+      try {
+        const coords = await geocodeAddress(address);
+        if (coords) {
+          spot.latitude = coords.latitude;
+          spot.longitude = coords.longitude;
+        }
+      } catch (geoErr) {
+        console.warn("Geocode failed, keeping previous coordinates", geoErr.message);
       }
     }
 
-    const updated = await Spot.findByIdAndUpdate(
-      req.params.id,
-      { address, closestStadium, latitude, longitude, price, spacesAvailable },
-      { new: true }
-    );
+    const fields = {
+      hostName,
+      title,
+      description,
+      address,
+      closestStadium,
+      price,
+      spacesAvailable,
+      eventDate,
+      startTime,
+      endTime,
+    };
 
-    res.json(updated);
+    Object.entries(fields).forEach(([key, value]) => {
+      if (value !== undefined) {
+        if ((key === "price" || key === "spacesAvailable") && value !== null) {
+          const numeric = Number(value);
+          if (!Number.isNaN(numeric)) {
+            spot[key] = numeric;
+          }
+        } else {
+          spot[key] = value;
+        }
+      }
+    });
+
+    if (amenities && typeof amenities === "object") {
+      spot.amenities = {
+        ...(spot.amenities || {}),
+        ...amenities,
+      };
+    }
+
+    await spot.save();
+
+    const listing = await upsertListingFromSpot(spot);
+
+    res.json({
+      ...spot.toObject(),
+      listing,
+    });
   } catch (err) {
     console.error("Update Spot Error:", err);
     res.status(500).json({ error: "Failed to update spot" });
@@ -89,11 +144,38 @@ router.get("/near", async (req, res) => {
 });
 
 /* =============================================
+   GET SINGLE SPOT WITH OPTIONAL LISTING
+============================================= */
+router.get("/:id", async (req, res) => {
+  try {
+    const spot = await Spot.findById(req.params.id);
+    if (!spot) return res.status(404).json({ error: "Spot not found" });
+
+    const listing = spot.listingId
+      ? await Listing.findOne({ spotId: spot._id })
+      : null;
+
+    res.json({
+      ...spot.toObject(),
+      listing,
+    });
+  } catch (err) {
+    console.error("Get Spot Error:", err);
+    res.status(500).json({ error: "Failed to load spot" });
+  }
+});
+
+/* =============================================
    DELETE SPOT (Public)
 ============================================= */
 router.delete("/:id", async (req, res) => {
   try {
-    await Spot.findByIdAndDelete(req.params.id);
+    const spot = await Spot.findByIdAndDelete(req.params.id);
+    if (spot?.listingId) {
+      await Listing.deleteOne({ _id: spot.listingId });
+    } else if (spot?._id) {
+      await Listing.deleteOne({ spotId: spot._id });
+    }
     res.json({ success: true });
   } catch (err) {
     console.error("Delete Spot Error:", err);

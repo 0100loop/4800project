@@ -10,20 +10,32 @@ import {
 
 import { Button } from "../ui/button";
 import { Card } from "../ui/card";
-import { ImageWithFallback } from "../ui/ImageWithFallback";
 
 import { createCheckoutSession } from "../lib/paymentsApi";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5000/api";
+const RAW_API_BASE =
+  import.meta.env.VITE_API_BASE_URL ||
+  import.meta.env.VITE_API_URL ||
+  "http://localhost:5000";
+const API_URL = RAW_API_BASE.endsWith("/api")
+  ? RAW_API_BASE
+  : `${RAW_API_BASE}/api`;
 
 interface BookingFlowProps {
   onNavigate: (view: string, data?: any) => void;
   spotId?: string | number;
   listingId?: string;
   listing?: any; // If listing object is passed directly
+  returnTo?: { view: string; data?: any };
 }
 
-export function BookingFlow({ onNavigate, spotId, listingId, listing: passedListing }: BookingFlowProps) {
+export function BookingFlow({
+  onNavigate,
+  spotId,
+  listingId,
+  listing: passedListing,
+  returnTo,
+}: BookingFlowProps) {
   const params = useParams<{ id: string }>();
   
   const [spot, setSpot] = useState<any | null>(null);
@@ -32,6 +44,8 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
   const [loading, setLoading] = useState(!passedListing);
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const fallbackView = returnTo?.view || "map";
+  const fallbackData = returnTo?.data;
 
   useEffect(() => {
     async function load() {
@@ -45,15 +59,14 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
         // If listingId is provided, fetch that specific listing
         if (listingId || params?.id) {
           const id = listingId || params?.id;
-          const res = await fetch(`${API_URL}/listings?spotId=${id}`);
-          const data = await res.json();
-          
-          const found = Array.isArray(data) 
-            ? data.find((l: any) => l._id === id)
-            : data;
-          
-          if (found) {
+          const res = await fetch(`${API_URL}/listings/${id}`);
+
+          if (res.ok) {
+            const found = await res.json();
             setSelectedListing(found);
+            if (found?.spotId && typeof found.spotId === "object") {
+              setSpot(found.spotId);
+            }
             setLoading(false);
             return;
           }
@@ -64,24 +77,42 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
           const spotRes = await fetch(`${API_URL}/spots/${spotId}`);
           if (!spotRes.ok) throw new Error("Spot not found");
           const spotData = await spotRes.json();
-          setSpot(spotData);
+
+          const { listing: spotListing, ...spotDetails } = spotData || {};
+          setSpot(spotDetails);
 
           // Fetch available listings for this spot
           const listingsRes = await fetch(`${API_URL}/listings?spotId=${spotId}`);
           const listingsData = await listingsRes.json();
           const availableListings = Array.isArray(listingsData)
-            ? listingsData.filter((l: any) => 
-                l.isActive && 
-                l.status === "active" && 
-                l.bookedSpaces < l.spacesAvailable
+            ? listingsData.filter(
+                (l: any) =>
+                  l.isActive &&
+                  l.status === "active" &&
+                  l.bookedSpaces < l.spacesAvailable
               )
             : [];
 
           setListings(availableListings);
-          
-          // If only one listing, auto-select it
+
+          if (spotListing && !listingId && !passedListing) {
+            setSelectedListing(spotListing);
+            setLoading(false);
+            return;
+          }
+
           if (availableListings.length === 1) {
             setSelectedListing(availableListings[0]);
+          } else if (listingId || params?.id) {
+            const desiredId = listingId || params?.id;
+            const match = availableListings.find(
+              (l: any) => l._id === desiredId
+            );
+            if (match) {
+              setSelectedListing(match);
+              setLoading(false);
+              return;
+            }
           }
         }
       } catch (e: any) {
@@ -136,7 +167,7 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => onNavigate("spot", spotId)}
+              onClick={() => onNavigate(fallbackView, fallbackData)}
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
@@ -242,7 +273,7 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
           <p className="text-gray-600 mb-4">
             This spot doesn't have any available time slots at the moment.
           </p>
-          <Button onClick={() => onNavigate("spot", spotId)}>
+          <Button onClick={() => onNavigate(fallbackView, fallbackData)}>
             Back to Spot Details
           </Button>
         </Card>
@@ -267,7 +298,11 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
     day: "numeric",
   });
 
-  const displaySpot = spot || selectedListing.spotId;
+  const displaySpot =
+    spot ||
+    (selectedListing && typeof selectedListing.spotId === "object"
+      ? selectedListing.spotId
+      : null);
 
   return (
     <div className="min-h-screen bg-gray-50 pb-24">
@@ -281,7 +316,7 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
               if (spot && listings.length > 1) {
                 setSelectedListing(null);
               } else {
-                onNavigate(spot ? "spot" : "map", spotId);
+                onNavigate(fallbackView, fallbackData);
               }
             }}
           >
@@ -296,7 +331,7 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
         <Card className="p-6 space-y-4">
           <div className="flex items-start gap-4">
             <div className="w-24 h-24 rounded-lg overflow-hidden bg-gray-100 flex-shrink-0">
-              <ImageWithFallback
+              <img
                 src="https://images.unsplash.com/photo-1519505907962-0a6ef6dc9095?auto=format&fit=crop&w=1200&q=80"
                 alt="Parking spot"
                 className="w-full h-full object-cover"
@@ -305,11 +340,13 @@ export function BookingFlow({ onNavigate, spotId, listingId, listing: passedList
 
             <div className="flex-1">
               <h2 className="text-xl font-semibold text-[#0A2540] mb-2">
-                {displaySpot?.title || "Parking Spot"}
+                {displaySpot?.title || selectedListing.title || "Parking Spot"}
               </h2>
               <p className="text-sm text-gray-600 flex items-center gap-1 mb-1">
                 <MapPin className="w-4 h-4" />
-                {displaySpot?.address || "Address TBD"}
+                {displaySpot?.address ||
+                  selectedListing.address ||
+                  "Address TBD"}
               </p>
               {selectedListing.eventName && (
                 <p className="text-sm font-medium text-[#06B6D4] mt-1">

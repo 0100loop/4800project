@@ -1,5 +1,4 @@
 node_modules/
-<<<<<<< Updated upstream
 server/node_modules/
 dist/
 coverage/
@@ -13,21 +12,8 @@ coverage/
 server/.env
 
 # Java tooling artifacts
-=======
-.env
-.env.*.local
-dist/
-.vscode/
-.DS_Store
-coverage/
-server/node_modules/
->>>>>>> Stashed changes
 junit-test/.classpath
 junit-test/.project
 *.class
 *.prefs
-<<<<<<< Updated upstream
-=======
-*.env
-server/.env
->>>>>>> Stashed changes
+

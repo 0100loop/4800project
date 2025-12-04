@@ -12,6 +12,7 @@ import MyBookings from "./figma/MyBookings";
 import { UserProfile } from "./figma/UserProfile";
 import { SpotManagement } from "./figma/SpotManagement";
 import { CreateListing } from "./figma/CreateListing";
+import { BookingFlow } from "./pages/BookingFlow.tsx";
 
 import Login from "./pages/Auth/Login";
 import Signup from "./pages/Auth/Signup";
@@ -107,6 +108,17 @@ export default function App() {
                   <BookingConfirmation
                     onNavigate={onNavigate}
                     bookingData={data}
+                  />
+                )}
+
+                {/* BOOKING FLOW */}
+                {view === "bookingFlow" && (
+                  <BookingFlow
+                    onNavigate={onNavigate}
+                    listingId={data?.listingId}
+                    spotId={data?.spotId}
+                    listing={data?.listing}
+                    returnTo={data?.returnTo}
                   />
                 )}
 

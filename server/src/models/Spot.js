@@ -8,6 +8,9 @@ const SpotSchema = new mongoose.Schema(
     // Address of spot
     address: { type: String, default: "" },
 
+    title: { type: String, default: "" },
+    description: { type: String, default: "" },
+
     // Stadium
     closestStadium: { type: String, default: "" },
 
@@ -25,6 +28,20 @@ const SpotSchema = new mongoose.Schema(
     // Geocoded coordinates
     latitude: { type: Number, default: null },
     longitude: { type: Number, default: null },
+
+    amenities: {
+      bathroom: { type: Boolean, default: false },
+      evCharging: { type: Boolean, default: false },
+      shuttle: { type: Boolean, default: false },
+      tailgateFriendly: { type: Boolean, default: false },
+      overnightAllowed: { type: Boolean, default: false },
+    },
+
+    listingId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Listing",
+      default: null,
+    },
 
     isActive: { type: Boolean, default: true },
   },
