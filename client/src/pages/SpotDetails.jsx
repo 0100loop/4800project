@@ -1,48 +1,86 @@
-import { useEffect, useState } from "react";
-import { useParams, Link } from "react-router-dom";
+import { MapPin, User, Car, DollarSign } from "lucide-react";
+import { Button } from "../ui/button";
 
-export default function SpotDetails(){
-  const { id } = useParams();
-  const [spot, setSpot] = useState(null);
+export function SpotDetails({ onNavigate, spotData }) {
+  const spot = spotData?.spot;
 
-  useEffect(()=>{
-    // pull all then find one (simpler than adding /listings/:id route now)
-    navigator.geolocation.getCurrentPosition(async p=>{
-      const r = await fetch(`/api/listings?lat=${p.coords.latitude}&lng=${p.coords.longitude}&maxKm=1000`);
-      const arr = await r.json();
-      setSpot(arr.find(x=>x._id===id));
-    }, async ()=>{
-      const r = await fetch(`/api/listings?lat=34.013&lng=-118.287&maxKm=1000`);
-      const arr = await r.json();
-      setSpot(arr.find(x=>x._id===id));
-    });
-  },[id]);
-
-  if(!spot) return <div className="container">Loading…</div>;
-
-  const amenities = [
-    spot.bathroom && "Bathroom access",
-    spot.evCharging && "EV charging",
-    spot.shuttle && "Shuttle available",
-    spot.tailgateFriendly && "Tailgate-friendly",
-    spot.overnightAllowed && "Overnight OK"
-  ].filter(Boolean);
+  if (!spot) {
+    return (
+      <div className="p-10 text-center">
+        <p className="text-gray-600">Spot not found.</p>
+        <Button onClick={() => onNavigate("home")}>Return Home</Button>
+      </div>
+    );
+  }
 
   return (
-    <div className="container" style={{padding:"18px 0 28px"}}>
-      <div className="card" style={{display:"grid", gap:12}}>
-        <h2 style={{marginTop:0}}>{spot.title}</h2>
-        <div>{spot.address}</div>
-        <div><b>${spot.pricePerHour}/hr</b></div>
-        <div>Safety score: <span className="badge badge--ok">{spot.safetyScore || "A"}</span></div>
-        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
-          {amenities.length ? amenities.map(a=><span key={a} className="pill">{a}</span>): <span className="pill">No add-ons</span>}
-        </div>
-        <div className="row" style={{marginTop:8}}>
-          <Link className="btn" to={`/book/${spot._id}`}>Reserve</Link>
-          <Link className="btn btn--ghost" to="/map">Back to map</Link>
-        </div>
+    <div className="max-w-3xl mx-auto px-4 py-10">
+
+      {/* BACK */}
+      <Button onClick={() => onNavigate("map")} className="mb-6">
+        ← Back
+      </Button>
+
+      {/* TITLE */}
+      <h1 className="text-3xl font-bold text-[#0A2540] mb-4">
+        Parking Spot Details
+      </h1>
+
+      <div className="bg-white p-6 shadow rounded-xl mb-6 border">
+
+        <h2 className="text-xl font-semibold flex items-center gap-2 mb-3">
+          <User className="w-5 h-5 text-[#06B6D4]" />
+          Host: {spot.owner?.name || "Host"}
+        </h2>
+
+        <p className="flex items-center gap-2 text-gray-600 mb-2">
+          <MapPin className="w-4 h-4" />
+          {spot.address}
+        </p>
+
+        <p className="flex items-center gap-2 text-gray-600 mb-2">
+          <Car className="w-4 h-4" />
+          Spaces Available: {spot.spacesAvailable}
+        </p>
+
+        <p className="text-[#06B6D4] text-lg flex items-center gap-2 mb-2">
+          <DollarSign className="w-4 h-4" /> {spot.price}
+        </p>
+
+        <p className="text-gray-600">
+          Closest Stadium:{" "}
+          <span className="font-medium text-[#0A2540]">
+            {spot.closestStadium}
+          </span>
+        </p>
       </div>
+
+      {/* MAP BUTTON */}
+      <Button
+        className="w-full mb-4 bg-[#06B6D4] hover:bg-[#0891B2]"
+        onClick={() =>
+          onNavigate("map", {
+            event: {
+              title: `${spot.closestStadium} Parking`,
+              venue: {
+                name: spot.closestStadium,
+                lat: spot.latitude,
+                lon: spot.longitude,
+              },
+            },
+          })
+        }
+      >
+        View on Map
+      </Button>
+
+      {/* BOOKING BUTTON */}
+      <Button
+        className="w-full bg-[#0A2540] hover:bg-[#112E55] text-white"
+        onClick={() => onNavigate("booking", { spot })}
+      >
+        Book This Spot
+      </Button>
     </div>
   );
 }
