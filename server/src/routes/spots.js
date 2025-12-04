@@ -28,11 +28,20 @@ router.put("/:id", async (req, res) => {
     let longitude = null;
 
     if (address) {
-      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
-      const geoRes = await axios.get(geoURL);
-      if (geoRes.data.length > 0) {
-        latitude = geoRes.data[0].lat;
-        longitude = geoRes.data[0].lon;
+      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+        address
+      )}`;
+
+      // Respect Nominatim usage policy: set a custom User-Agent
+      const geoRes = await axios.get(geoURL, {
+        headers: {
+          "User-Agent": "ParkItApp/1.0 (contact@parkit.local)",
+        },
+      });
+
+      if (Array.isArray(geoRes.data) && geoRes.data.length > 0) {
+        latitude = Number(geoRes.data[0].lat);
+        longitude = Number(geoRes.data[0].lon);
       }
     }
 
