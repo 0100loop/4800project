@@ -2,7 +2,15 @@ import { useEffect, useState } from "react";
 import { Button } from "./ui/button.js";
 import { Card, CardContent } from "./ui/card.js";
 import { Badge } from "./ui/badge.js";
-import { MapPin } from "lucide-react";
+import {
+  ChevronLeft,
+  MapPin,
+  DollarSign,
+  TrendingUp,
+  Users,
+  Trash2,
+  Settings,
+} from "lucide-react";
 
 interface SpotManagementProps {
   onNavigate: (view: string, data?: any) => void;
@@ -56,7 +64,7 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
       }
 
       // Remove deleted spot in UI
-      setSpots((prev) => prev.filter((s) => s.id !== spotId));
+      setSpots((prev) => prev.filter((s) => s._id !== spotId));
     } catch (err) {
       console.error("Delete spot error:", err);
       alert("Error deleting spot");
@@ -75,15 +83,15 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
         auth: true,
       });
 
-      if (!newSpot || !newSpot.id) {
+      if (!newSpot || !newSpot._id) {
         alert("Failed to create a new spot.");
         return;
       }
 
-      console.log("New spot created:", newSpot.id);
+      console.log("New spot created:", newSpot._id);
 
       // 2️⃣ Navigate to CreateListing *with* the valid spotId
-      onNavigate("createListing", { spotId: newSpot.id });
+      onNavigate("createListing", { spotId: newSpot._id });
     } catch (err) {
       console.error("Failed to create spot:", err);
       alert("Error creating spot.");
@@ -93,8 +101,16 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
   return (
     <div className="max-w-6xl mx-auto px-4 py-8">
 
-      {/* HEADER */}
+      {/* HEADER 
       <div className="flex items-center justify-between mb-6">
+        <Button
+          size="icon"
+          color = 'blue'
+          onClick={() => onNavigate("home")}
+          className="text-blue hover:bg-black/10 rounded-full"
+        >
+          <ChevronLeft />
+        </Button>      
         <h1 className="text-2xl font-semibold text-[#0A2540]">
           My Spots
         </h1>
@@ -105,10 +121,32 @@ export function SpotManagement({ onNavigate, apiFetch }: SpotManagementProps) {
         >
           + Add Spot
         </Button>
+      </div> */}
+      {/* HEADER */}
+      <div className="m-1 text-white">
+        <div className="flex items-center gap-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => onNavigate("home")}
+            className="text-blue-800 hover:bg-blue/20 rounded-full w-12 h-12"
+          >
+            <ChevronLeft />
+          </Button>
+
+          <h2 className="text-2xl font-semibold text-[#0A2540]">My Spots</h2>
+
+          <Button
+            className="bg-[#06B6D4] hover:bg-[#0891B2] text-white ml-auto"
+            onClick={handleAddSpot}
+          >
+            + Add Spot
+          </Button>
+        </div>
       </div>
 
       {/* SPOT LIST */}
-      <div className="space-y-6">
+      <div className="space-y-6 pt-8">
         {loading && <p>Loading spots...</p>}
 
         {!loading && spots.length === 0 && (

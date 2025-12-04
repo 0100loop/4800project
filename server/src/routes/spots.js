@@ -5,12 +5,28 @@ import axios from "axios";
 const router = express.Router();
 
 /* =============================================
-   CREATE SPOT (Public - No Login Required)
+   Middleware: Require Auth (example)
+   Assumes req.user is set by your auth system
 ============================================= */
-router.post("/", async (req, res) => {
+
+
+/* =============================================
+   CREATE SPOT (Requires Login)
+============================================= */
+import auth from "../middleware/auth.js";
+
+router.post("/", auth(), async (req, res) => {
   try {
-    const spot = await Spot.create({});
-    res.json({ id: spot._id });
+    const spot = await Spot.create({
+      ownerId: req.user.id,          // attach logged-in user
+      address: req.body.address || "",
+      closestStadium: req.body.closestStadium || "",
+      price: req.body.price || 0,
+      spacesAvailable: req.body.spacesAvailable || 0,
+      isActive: true,
+    });
+
+    res.json(spot); // return the full spot
   } catch (err) {
     console.error("Create Spot Error:", err);
     res.status(500).json({ error: "Failed to create spot" });
@@ -18,9 +34,9 @@ router.post("/", async (req, res) => {
 });
 
 /* =============================================
-   UPDATE SPOT (Public - No Login Required)
+   UPDATE SPOT (Requires Login & Ownership)
 ============================================= */
-router.put("/:id", async (req, res) => {
+router.put("/:id", auth(), async (req, res) => {
   try {
     const { address, closestStadium, price, spacesAvailable } = req.body;
 
@@ -28,7 +44,9 @@ router.put("/:id", async (req, res) => {
     let longitude = null;
 
     if (address) {
-      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}`;
+      const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+        address
+      )}`;
       const geoRes = await axios.get(geoURL);
       if (geoRes.data.length > 0) {
         latitude = geoRes.data[0].lat;
@@ -36,11 +54,15 @@ router.put("/:id", async (req, res) => {
       }
     }
 
-    const updated = await Spot.findByIdAndUpdate(
-      req.params.id,
+    const updated = await Spot.findOneAndUpdate(
+      { _id: req.params.id, ownerId: req.user.id }, // enforce ownership
       { address, closestStadium, latitude, longitude, price, spacesAvailable },
       { new: true }
     );
+
+    if (!updated) {
+      return res.status(403).json({ error: "Not authorized to update this spot" });
+    }
 
     res.json(updated);
   } catch (err) {
@@ -50,11 +72,11 @@ router.put("/:id", async (req, res) => {
 });
 
 /* =============================================
-   GET ALL SPOTS (Public)
+   GET MY SPOTS (Requires Login)
 ============================================= */
-router.get("/mine", async (req, res) => {
+router.get("/mine", auth(), async (req, res) => {
   try {
-    const spots = await Spot.find();
+    const spots = await Spot.find({ ownerId: req.user.id });
     res.json(spots);
   } catch (err) {
     console.error("Load Spots Error:", err);
@@ -70,8 +92,7 @@ router.get("/near", async (req, res) => {
     const stadium = req.query.stadium;
     if (!stadium) return res.status(400).json({ error: "Stadium required" });
 
-    const spots = await Spot.find({ closestStadium: stadium });
-
+    const spots = await Spot.find({ closestStadium: stadium, isActive: true });
     res.json(spots);
   } catch (err) {
     console.error("Nearby Spot Error:", err);
@@ -80,11 +101,19 @@ router.get("/near", async (req, res) => {
 });
 
 /* =============================================
-   DELETE SPOT (Public)
+   DELETE SPOT (Requires Login & Ownership)
 ============================================= */
-router.delete("/:id", async (req, res) => {
+router.delete("/:id", auth(), async (req, res) => {
   try {
-    await Spot.findByIdAndDelete(req.params.id);
+    const deleted = await Spot.findOneAndDelete({
+      _id: req.params.id,
+      ownerId: req.user.id,
+    });
+
+    if (!deleted) {
+      return res.status(403).json({ error: "Not authorized to delete this spot" });
+    }
+
     res.json({ success: true });
   } catch (err) {
     console.error("Delete Spot Error:", err);

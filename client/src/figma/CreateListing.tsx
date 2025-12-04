@@ -162,6 +162,7 @@ export function CreateListing({ spotId, onBack }) {
                 Spaces Available *
               </label>
               <Input
+                className="w-full border border-gray-300 rounded-lg p-3 text-gray-800 bg-white"
                 type="number"
                 placeholder="e.g., 1"
                 value={spaces}

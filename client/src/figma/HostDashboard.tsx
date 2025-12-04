@@ -25,7 +25,7 @@ export function HostDashboard({ onNavigate }) {
         const allSpots = await apiFetch("/api/spots/mine");
         setSpots(allSpots || []);
 
-        const allBookings = await apiFetch("/api/bookings");
+        const allBookings = await apiFetch("/api/bookings/host");
         setBookings(allBookings || []);
       } catch (err) {
         console.error("Error loading dashboard:", err);
@@ -40,12 +40,12 @@ export function HostDashboard({ onNavigate }) {
     try {
       const newSpot = await apiFetch("/api/spots", { method: "POST" });
 
-      if (!newSpot?.id) {
+      if (!newSpot?._id) {
         alert("Could not create spot.");
         return;
       }
 
-      onNavigate("createListing", { spotId: newSpot.id });
+      onNavigate("createListing", { spotId: newSpot._id });
     } catch (err) {
       console.error("Create spot failed:", err);
       alert("Error creating spot.");

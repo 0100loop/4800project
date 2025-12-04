@@ -1,5 +1,6 @@
 import express from "express";
 import Booking from "../models/Booking.js";
+import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
@@ -17,15 +18,22 @@ router.get("/", async (req, res) => {
 });
 
 /* =============================================
-   HOST BOOKINGS (Public)
+   HOST BOOKINGS (Requires Login)
 ============================================= */
-router.get("/host", async (req, res) => {
+router.get("/host", auth(), async (req, res) => {
   try {
+    // find bookings where the spot belongs to this host
     const bookings = await Booking.find()
-      .populate("spot")
+      .populate({
+        path: "spot",
+        match: { ownerId: req.user.id }, // only spots owned by this host
+      })
       .populate("user", "name");
 
-    res.json(bookings);
+    // filter out null spots (not owned by this host)
+    const hostBookings = bookings.filter(b => b.spot);
+
+    res.json(hostBookings);
   } catch (err) {
     console.error("Host Booking Error:", err);
     res.status(500).json({ error: "Failed to load bookings" });

@@ -6,7 +6,8 @@ const SpotSchema = new mongoose.Schema({
   price: Number,
   lat: Number,
   lng: Number,
-  owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
+  ownerId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
+  //owner: { type: mongoose.Schema.Types.ObjectId, ref: "User" }
 });
 
 module.exports = mongoose.model("Spot", SpotSchema);

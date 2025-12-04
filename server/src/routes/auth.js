@@ -7,11 +7,15 @@ import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 import User from "../models/User.js";
 import sendEmail from "../utils/sendEmail.js";
 import dotenv from "dotenv";
+import auth from "../middleware/auth.js";  // import your auth middleware
+
 
 // Load environment variables
 dotenv.config();
 
 const router = express.Router();
+// Apply auth to all routes in this router
+
 
 /* =========================================================================
    GOOGLE STRATEGY
@@ -62,58 +66,29 @@ passport.use(
   )
 );
 
+
+
 /* =========================================================================
-   EMAIL SIGNUP + WELCOME EMAIL
+   EMAIL SIGNUP + WELCOME EMAIL (PUBLIC)
 =========================================================================== */
 router.post("/signup", async (req, res) => {
   try {
-    const { name, email, password, phone, location } = req.body;
+    const { name, email, password } = req.body;
 
-    if (!email || !password || !name) {
-      return res.status(400).json({ error: "Missing required fields." });
-    }
-
-    const exists = await User.findOne({ email });
-    if (exists) {
-      return res.status(400).json({ error: "Email already exists." });
-    }
+    const existing = await User.findOne({ email });
+    if (existing) return res.status(400).json({ error: "Email already registered" });
 
     const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await User.create({
-      name,
-      email,
-      passwordHash,
-      phone,
-      location,
-      memberSince: new Date(),
-    });
+    const user = await User.create({ name, email, passwordHash });
 
     // Send welcome email
     await sendEmail(
-      email,
-      "🎉 Welcome to ParkIt!",
-      `
-        <h2>Welcome to ParkIt, ${name}!</h2>
-        <p>We're excited to have you join our community. Here's what you can do now:</p>
-
-        <ul>
-          <li>🚗 <strong>Start renting your parking space</strong> or find convenient parking near your favorite events.</li>
-          <li>💰 <strong>Earn extra income</strong> as a host.</li>
-          <li>📍 <strong>Find parking near any venue</strong> easily.</li>
-          <li>🔒 <strong>Enjoy a secure and trusted platform</strong> for parking.</li>
-        </ul>
-
-        <p>Let’s get started!</p>
-        <p>— The ParkIt Team</p>
-      `
+      user.email,
+      "Welcome to ParkIt!",
+      `<h2>Welcome, ${user.name}!</h2><p>Thanks for signing up.</p>`
     );
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
-      expiresIn: "7d",
-    });
-
-    res.json({ token, user });
+    res.json({ ok: true, user });
   } catch (err) {
     console.error("Signup error:", err);
     res.status(500).json({ error: "Signup failed" });
@@ -121,7 +96,7 @@ router.post("/signup", async (req, res) => {
 });
 
 /* =========================================================================
-   EMAIL LOGIN
+   EMAIL LOGIN (PUBLIC)
 =========================================================================== */
 router.post("/login", async (req, res) => {
   try {
@@ -135,7 +110,7 @@ router.post("/login", async (req, res) => {
     const match = await bcrypt.compare(password, user.passwordHash);
     if (!match) return res.status(400).json({ error: "Invalid credentials" });
 
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, {
+    const token = jwt.sign({ id: user._id, role: user.role }, process.env.JWT_SECRET, {
       expiresIn: "7d",
     });
 
@@ -147,18 +122,16 @@ router.post("/login", async (req, res) => {
 });
 
 /* =========================================================================
-   FORGOT PASSWORD  (RESTORED SIMPLE VERSION)
+   FORGOT PASSWORD (PUBLIC)
 =========================================================================== */
 router.post("/forgot-password", async (req, res) => {
   try {
     const { email } = req.body;
-
     const user = await User.findOne({ email });
 
     // Security: never reveal if user exists
     if (!user) return res.json({ ok: true });
 
-    // Generate reset token
     const resetToken = crypto.randomBytes(32).toString("hex");
     const hashed = crypto.createHash("sha256").update(resetToken).digest("hex");
 
@@ -168,44 +141,18 @@ router.post("/forgot-password", async (req, res) => {
 
     const resetLink = `http://localhost:5173/reset-password/${resetToken}`;
 
-    // Simple plain-text email
-   await sendEmail(
-  user.email,
-  "ParkIt Password Reset",
-  `
-  <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto;">
-
-    <h2 style="color: #111; font-size: 24px; margin-bottom: 20px;">
-      Password Reset Requested
-    </h2>
-
-    <p style="font-size: 16px; color: #333; margin-bottom: 24px;">
-      Click the button below to reset your password:
-    </p>
-
-    <a href="${resetLink}" 
-      style="
-        display: inline-block;
-        background: #03B4D8;
-        color: white;
-        padding: 14px 28px;
-        border-radius: 10px;
-        font-size: 17px;
-        font-weight: bold;
-        text-decoration: none;
-        text-align: center;
-      ">
-      Reset Password
-    </a>
-
-    <p style="margin-top: 30px; color: #555; font-size: 14px;">
-      If you did not request this, please ignore this email.
-    </p>
-
-  </div>
-  `
-);
-
+    await sendEmail(
+      user.email,
+      "ParkIt Password Reset",
+      `
+      <div style="font-family: Arial, sans-serif; padding: 20px; max-width: 500px; margin: auto;">
+        <h2>Password Reset Requested</h2>
+        <p>Click below to reset your password:</p>
+        <a href="${resetLink}" style="background:#03B4D8;color:white;padding:14px 28px;border-radius:10px;text-decoration:none;">Reset Password</a>
+        <p>If you did not request this, please ignore.</p>
+      </div>
+      `
+    );
 
     res.json({ ok: true, message: "Reset link sent" });
   } catch (err) {
@@ -214,19 +161,12 @@ router.post("/forgot-password", async (req, res) => {
   }
 });
 
-
 /* =========================================================================
-   GET LOGGED-IN USER
+   GET LOGGED-IN USER (PROTECTED)
 =========================================================================== */
-router.get("/me", async (req, res) => {
+router.get("/me", auth(), async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.status(401).json({ error: "Missing token" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-
-    const user = await User.findById(decoded.id).select("-passwordHash");
-
+    const user = await User.findById(req.user.id).select("-passwordHash");
     res.json({ user });
   } catch (err) {
     console.error("Token check error:", err);
@@ -235,24 +175,14 @@ router.get("/me", async (req, res) => {
 });
 
 /* =========================================================================
-   UPDATE USER PROFILE
+   UPDATE USER PROFILE (PROTECTED)
 =========================================================================== */
-router.put("/me", async (req, res) => {
+router.put("/me", auth(), async (req, res) => {
   try {
-    const token = req.headers.authorization?.replace("Bearer ", "");
-    if (!token) return res.status(401).json({ error: "Missing token" });
-
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
     const { name, phone, location, avatar } = req.body;
-
     const user = await User.findByIdAndUpdate(
-      decoded.id,
-      {
-        ...(name && { name }),
-        ...(phone && { phone }),
-        ...(location && { location }),
-        ...(avatar && { avatar }),
-      },
+      req.user.id,
+      { ...(name && { name }), ...(phone && { phone }), ...(location && { location }), ...(avatar && { avatar }) },
       { new: true }
     ).select("-passwordHash");
 
@@ -264,19 +194,15 @@ router.put("/me", async (req, res) => {
 });
 
 /* =========================================================================
-   GOOGLE LOGIN + REDIRECT
+   GOOGLE LOGIN + REDIRECT (PUBLIC)
 =========================================================================== */
-router.get(
-  "/google",
-  passport.authenticate("google", { scope: ["profile", "email"] })
-);
+router.get("/google", passport.authenticate("google", { scope: ["profile", "email"] }));
 
 router.get(
   "/google/callback",
   passport.authenticate("google", { session: false }),
   (req, res) => {
     const { token, user } = req.user;
-
     res.redirect(
       `http://localhost:5173/auth-success?token=${token}` +
         `&name=${encodeURIComponent(user.name)}` +
@@ -287,6 +213,3 @@ router.get(
 );
 
 export default router;
-
-
-
