@@ -98,6 +98,7 @@ export default function App() {
                   <CreateListing
                     spotId={data?.spotId || data?.id}
                     onBack={() => onNavigate("spotManagement", data)}
+                    onNavigate={onNavigate}
                   />
                 )}
 

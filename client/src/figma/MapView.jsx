@@ -51,6 +51,7 @@ export function MapView({ onNavigate, viewData }) {
   const [filter, setFilter] = useState("ALL");
   const [parkingSpots, setParkingSpots] = useState([]);
   const [userCoords, setUserCoords] = useState(null);
+  const [selectedSpot, setSelectedSpot] = useState(null);
 
   // ⭐ Extract event location
   function getEventCoords(e) {
@@ -66,14 +67,31 @@ export function MapView({ onNavigate, viewData }) {
     return null;
   }
 
-  // ⭐ Load host parking spots for the stadium
-  async function loadNearbyParking(stadiumName) {
+  // ⭐ Generic helper to add markers for a list of spots
+  function addSpotMarkers(map, spots) {
+    if (!Array.isArray(spots) || !map) return;
+
+    spots.forEach((spot) => {
+      if (spot.latitude && spot.longitude) {
+        const marker = L.marker([spot.latitude, spot.longitude]).addTo(map);
+        marker.on("click", () => {
+          setSelectedSpot(spot);
+        });
+      }
+    });
+  }
+
+  // ⭐ Load host parking spots for the stadium AND create map markers
+  async function loadNearbyParking(stadiumName, map) {
     try {
       const res = await fetch(
         `/api/spots/near?stadium=${encodeURIComponent(stadiumName)}`
       );
       const data = await res.json();
       setParkingSpots(data || []);
+
+      // Create markers for each spot on the map
+      addSpotMarkers(map, data);
     } catch (err) {
       console.error("Parking load error:", err);
     }
@@ -102,7 +120,7 @@ export function MapView({ onNavigate, viewData }) {
       () => console.warn("Location blocked.")
     );
 
-    // ⭐ EVENT MODE
+    // ⭐ EVENT MODE (parking near selected event)
     const coords = getEventCoords(event);
     if (coords) {
       map.setView([coords.lat, coords.lon], 15);
@@ -111,8 +129,20 @@ export function MapView({ onNavigate, viewData }) {
         .addTo(map)
         .bindPopup(`<b>${event.title}</b><br>${event.venue?.name}`);
 
-      // Load parking near this stadium
-      loadNearbyParking(event.venue?.name);
+      // Load parking near this stadium and drop markers
+      loadNearbyParking(event.venue?.name, map);
+    } else {
+      // ⭐ NO EVENT: ALWAYS SHOW ALL ACTIVE SPOTS ON THE MAP
+      // This makes sure listings are visible even when coming from Home → Map View.
+      fetch("/api/spots/mine")
+        .then((res) => res.json())
+        .then((allSpots) => {
+          setParkingSpots(allSpots || []);
+          addSpotMarkers(map, allSpots);
+        })
+        .catch((err) => {
+          console.error("Failed to load all spots:", err);
+        });
     }
 
     // ⭐ Cluster group for stadiums
@@ -186,7 +216,50 @@ export function MapView({ onNavigate, viewData }) {
         }}
       ></div>
 
-      {/* HOST PARKING LIST */}
+      {/* SELECTED PARKING SPOT DETAILS (from map marker click) */}
+      {selectedSpot && (
+        <div className="mt-8">
+          <h3 className="text-2xl font-semibold mb-3">Selected Parking Spot</h3>
+          <div className="border p-4 rounded-xl shadow-sm bg-white flex justify-between">
+            <div>
+              <h4 className="font-bold text-lg">
+                {selectedSpot.owner?.name || "Host"}
+              </h4>
+              <p className="text-gray-600">{selectedSpot.address}</p>
+              {userCoords && selectedSpot.latitude && selectedSpot.longitude && (
+                <p className="text-gray-500">
+                  {getDistanceMiles(
+                    userCoords.latitude,
+                    userCoords.longitude,
+                    selectedSpot.latitude,
+                    selectedSpot.longitude
+                  )}{" "}
+                  miles away
+                </p>
+              )}
+              <p className="text-[#06B6D4] font-semibold text-lg">
+                ${selectedSpot.price}
+              </p>
+              <p className="text-sm text-gray-500">
+                Spaces Available: {selectedSpot.spacesAvailable}
+              </p>
+            </div>
+
+            <Button
+              className="bg-[#06B6D4] hover:bg-[#0891B2] text-white h-fit"
+              onClick={() =>
+                onNavigate("booking", {
+                  spot: selectedSpot,
+                })
+              }
+            >
+              Book Parking
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* HOST PARKING LIST (all nearby spots) */}
       {event && (
         <div className="mt-10">
           <h3 className="text-2xl font-semibold mb-4">Nearby Parking Spots</h3>
