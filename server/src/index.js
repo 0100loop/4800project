@@ -6,7 +6,7 @@ import spotRoutes from "./routes/spots.js";
 import listingRoutes from "./routes/listings.js";
 import bookingRoutes from "./routes/bookings.js";
 import paymentsRoutes from "./routes/payments.js";   // ⭐ ADDED
-
+import eventsRoutes from "./routes/events.js";
 const app = express();
 app.use(cors());
 app.use(express.json());
@@ -18,6 +18,11 @@ app.use("/api/auth", authRoutes);
 app.use("/api/spots", spotRoutes);
 app.use("/api/listings", listingRoutes);
 app.use("/api/bookings", bookingRoutes);
+
+
+app.use("/api/events", eventsRoutes);
+
+
 
 // ⭐ MOUNT PAYMENT ROUTES CORRECTLY
 app.use("/payments", paymentsRoutes);

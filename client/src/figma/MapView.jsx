@@ -53,6 +53,7 @@ export function MapView({ onNavigate, viewData }) {
   const [userCoords, setUserCoords] = useState(null);
   const mapRef = useRef(null);
   const listingLayerRef = useRef(null);
+  const [selectedSpot, setSelectedSpot] = useState(null);
 
   // ⭐ Extract event location
   function getEventCoords(e) {
@@ -68,7 +69,6 @@ export function MapView({ onNavigate, viewData }) {
     return null;
   }
 
-<<<<<<< HEAD
   // ⭐ Generic helper to add markers for a list of spots
   function addSpotMarkers(map, spots) {
     if (!Array.isArray(spots) || !map) return;
@@ -84,40 +84,20 @@ export function MapView({ onNavigate, viewData }) {
   }
 
   // ⭐ Load host parking spots for the stadium AND create map markers
-  async function loadNearbyParking(stadiumName, map) {
-    try {
-      const res = await fetch(
-        `/api/spots/near?stadium=${encodeURIComponent(stadiumName)}`
-=======
-  function handleListingSelect(listing) {
-    if (!listing) return;
-    onNavigate("bookingFlow", {
-      listingId: listing._id,
-      listing,
-      spotId:
-        typeof listing.spotId === "object"
-          ? listing.spotId?._id
-          : listing.spotId,
-      returnTo: { view: "map", data: viewData },
-    });
-  }
+// ⭐ Load host parking spots for the stadium AND create map markers
+async function loadNearbyParking(stadiumName, map) {
+  try {
+    const res = await fetch(
+      `/api/spots/near?stadium=${encodeURIComponent(stadiumName)}`
+    );
+    const spots = await res.json();
 
-  function updateListingMarkers(data, originCoords) {
-    if (!listingLayerRef.current || !mapRef.current) return;
-    listingLayerRef.current.clearLayers();
-
-    data.forEach((listing) => {
-      if (!listing?.lat || !listing?.lng) return;
-      const marker = L.marker([listing.lat, listing.lng]).addTo(
-        listingLayerRef.current
->>>>>>> 198f6d4 (Booking and Payment)
-      );
+    spots.forEach((listing) => {
+      const marker = L.marker([listing.lat, listing.lng]).addTo(map);
 
       marker
         .bindPopup(
-          `<b>${listing.title || listing.closestStadium || "Driveway"}</b><br/>$${
-            listing.price
-          }`
+          `<b>${listing.title || listing.closestStadium || "Driveway"}</b><br/>$${listing.price}`
         )
         .on("click", () => handleListingSelect(listing));
 
@@ -131,8 +111,10 @@ export function MapView({ onNavigate, viewData }) {
         ).addTo(listingLayerRef.current);
       }
     });
+  } catch (err) {
+    console.error("Error loading nearby parking:", err);
   }
-
+}
   // ⭐ Load host listings near the stadium or coordinates
   async function loadNearbyListings(stadiumName, coords) {
     try {
@@ -145,16 +127,10 @@ export function MapView({ onNavigate, viewData }) {
 
       const res = await fetch(url);
       const data = await res.json();
-<<<<<<< HEAD
       setParkingSpots(data || []);
 
       // Create markers for each spot on the map
       addSpotMarkers(map, data);
-=======
-      const normalized = Array.isArray(data) ? data : data ? [data] : [];
-      setListings(normalized);
-      updateListingMarkers(normalized, coords);
->>>>>>> 198f6d4 (Booking and Payment)
     } catch (err) {
       console.error("Listing load error:", err);
       setListings([]);
@@ -197,7 +173,6 @@ export function MapView({ onNavigate, viewData }) {
         .addTo(map)
         .bindPopup(`<b>${event.title}</b><br>${event.venue?.name}`);
 
-<<<<<<< HEAD
       // Load parking near this stadium and drop markers
       loadNearbyParking(event.venue?.name, map);
     } else {
@@ -212,14 +187,6 @@ export function MapView({ onNavigate, viewData }) {
         .catch((err) => {
           console.error("Failed to load all spots:", err);
         });
-=======
-      // Load listings near this stadium
-      loadNearbyListings(event.venue?.name, coords);
-    } else if (event?.venue?.name) {
-      loadNearbyListings(event.venue.name);
-    } else {
-      loadNearbyListings();
->>>>>>> 198f6d4 (Booking and Payment)
     }
 
     // ⭐ Cluster group for stadiums
