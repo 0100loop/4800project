@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
-
 import "leaflet.markercluster";
 import "leaflet.markercluster.css";
 import "leaflet.markercluster.default.css";
@@ -10,7 +9,7 @@ import { stadiums } from "../data/stadiums";
 import { Button } from "../ui/button";
 import { MapPin } from "lucide-react";
 
-// Fix Leaflet icons in Vite
+// Fix icons in Vite
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
   iconUrl: new URL("leaflet/dist/images/marker-icon.png", import.meta.url).href,
@@ -22,122 +21,82 @@ L.Icon.Default.mergeOptions({
     .href,
 });
 
-// ⭐ Custom Team Logo Marker
-function logoMarker(url) {
-  return L.icon({
-    iconUrl: url,
-    iconSize: [45, 45],
-    popupAnchor: [0, -20],
-  });
-}
-
-// ⭐ Haversine Distance Function
-function getDistanceMiles(lat1, lon1, lat2, lon2) {
-  if (!lat1 || !lon1 || !lat2 || !lon2) return null;
-  const R = 3958.8; // Earth radius in miles
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLon = ((lon2 - lon1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLon / 2) ** 2;
-  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-  return Number((R * c).toFixed(2));
-}
+// ⭐ SAMPLE SPOTS (because no hosts have posted yet)
+const SAMPLE_SPOTS = [
+  {
+    id: "1",
+    host: "Sarah Johnson",
+    address: "1234 Maple Street",
+    lat: 34.043,
+    lng: -118.267,
+    price: 15,
+    distance: "0.3mi",
+    walk: "5 min walk",
+    spotsLeft: 2,
+    features: ["EV Charging", "Covered", "Security"],
+    closestStadium: "Crypto.com Arena",
+  },
+  {
+    id: "2",
+    host: "Mike Chen",
+    address: "456 Oak Avenue",
+    lat: 34.045,
+    lng: -118.265,
+    price: 12,
+    distance: "0.5mi",
+    walk: "8 min walk",
+    spotsLeft: 1,
+    features: ["Bathroom Access", "Tailgate OK"],
+    closestStadium: "Crypto.com Arena",
+  },
+  {
+    id: "3",
+    host: "Emma Davis",
+    address: "789 Pine Street",
+    lat: 34.046,
+    lng: -118.263,
+    price: 20,
+    distance: "0.4mi",
+    walk: "6 min walk",
+    spotsLeft: 1,
+    features: ["EV Charging", "Shuttle"],
+    closestStadium: "Crypto.com Arena",
+  },
+];
 
 export function MapView({ onNavigate, viewData }) {
   const event = viewData?.event || null;
-  const [filter, setFilter] = useState("ALL");
-  const [listings, setListings] = useState([]);
-  const [userCoords, setUserCoords] = useState(null);
+
   const mapRef = useRef(null);
   const listingLayerRef = useRef(null);
-  const [selectedSpot, setSelectedSpot] = useState(null);
+  const [listings, setListings] = useState([]);
 
-  // ⭐ Extract event location
+  // ⭐ Extract event coordinates
   function getEventCoords(e) {
     if (e?.venue?.lat && e?.venue?.lon) {
       return { lat: e.venue.lat, lon: e.venue.lon };
     }
-    if (e?.performers?.[0]?.location?.lat && e?.performers?.[0]?.location?.lon) {
-      return {
-        lat: e.performers[0].location.lat,
-        lon: e.performers[0].location.lon,
-      };
-    }
     return null;
   }
 
-  // ⭐ Generic helper to add markers for a list of spots
-  function addSpotMarkers(map, spots) {
-    if (!Array.isArray(spots) || !map) return;
+  // ⭐ Add markers to map
+  function addListingMarkers(map, spots, originCoords) {
+    listingLayerRef.current.clearLayers();
 
     spots.forEach((spot) => {
-      if (spot.latitude && spot.longitude) {
-        const marker = L.marker([spot.latitude, spot.longitude]).addTo(map);
-        marker.on("click", () => {
-          setSelectedSpot(spot);
-        });
-      }
-    });
-  }
+      if (!spot.lat || !spot.lng) return;
 
-  // ⭐ Load host parking spots for the stadium AND create map markers
-// ⭐ Load host parking spots for the stadium AND create map markers
-async function loadNearbyParking(stadiumName, map) {
-  try {
-    const res = await fetch(
-      `/api/spots/near?stadium=${encodeURIComponent(stadiumName)}`
-    );
-    const spots = await res.json();
-
-    spots.forEach((listing) => {
-      const marker = L.marker([listing.lat, listing.lng]).addTo(map);
+      const marker = L.marker([spot.lat, spot.lng]).addTo(
+        listingLayerRef.current
+      );
 
       marker
-        .bindPopup(
-          `<b>${listing.title || listing.closestStadium || "Driveway"}</b><br/>$${listing.price}`
-        )
-        .on("click", () => handleListingSelect(listing));
-
-      if (originCoords?.lat && originCoords?.lon) {
-        L.polyline(
-          [
-            [originCoords.lat, originCoords.lon],
-            [listing.lat, listing.lng],
-          ],
-          { opacity: 0.3 }
-        ).addTo(listingLayerRef.current);
-      }
+        .bindPopup(`<b>${spot.host}</b><br/>$${spot.price}`)
+        .on("click", () => onNavigate("spotDetails", { spot }));
     });
-  } catch (err) {
-    console.error("Error loading nearby parking:", err);
-  }
-}
-  // ⭐ Load host listings near the stadium or coordinates
-  async function loadNearbyListings(stadiumName, coords) {
-    try {
-      let url = "/api/listings";
-      if (coords?.lat && coords?.lon) {
-        url += `?lat=${coords.lat}&lng=${coords.lon}&maxKm=5`;
-      } else if (stadiumName) {
-        url += `?stadium=${encodeURIComponent(stadiumName)}`;
-      }
-
-      const res = await fetch(url);
-      const data = await res.json();
-      setParkingSpots(data || []);
-
-      // Create markers for each spot on the map
-      addSpotMarkers(map, data);
-    } catch (err) {
-      console.error("Listing load error:", err);
-      setListings([]);
-      updateListingMarkers([], coords);
-    }
   }
 
+  // ⭐ Initialize map and load spots
   useEffect(() => {
     const map = L.map("eventMap").setView([39.8283, -98.5795], 4);
     mapRef.current = map;
@@ -148,68 +107,42 @@ async function loadNearbyParking(stadiumName, map) {
 
     listingLayerRef.current = L.layerGroup().addTo(map);
 
-    // ⭐ Automatic location popup
-    navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const { latitude, longitude } = pos.coords;
-        setUserCoords({ latitude, longitude });
-
-        L.marker([latitude, longitude])
-          .addTo(map)
-          .bindPopup("<b>You Are Here</b>")
-          .openPopup();
-
-        // map.setView([latitude, longitude], 12);  // Keep U.S. view first
-      },
-      () => console.warn("Location blocked.")
-    );
-
-    // ⭐ EVENT MODE (parking near selected event)
     const coords = getEventCoords(event);
+    let spotData = SAMPLE_SPOTS;
+
     if (coords) {
       map.setView([coords.lat, coords.lon], 15);
 
+      // Event marker
       L.marker([coords.lat, coords.lon])
         .addTo(map)
         .bindPopup(`<b>${event.title}</b><br>${event.venue?.name}`);
 
-      // Load parking near this stadium and drop markers
-      loadNearbyParking(event.venue?.name, map);
-    } else {
-      // ⭐ NO EVENT: ALWAYS SHOW ALL ACTIVE SPOTS ON THE MAP
-      // This makes sure listings are visible even when coming from Home → Map View.
-      fetch("/api/spots/mine")
-        .then((res) => res.json())
-        .then((allSpots) => {
-          setParkingSpots(allSpots || []);
-          addSpotMarkers(map, allSpots);
-        })
-        .catch((err) => {
-          console.error("Failed to load all spots:", err);
-        });
+      // Load sample spots around event
+      addListingMarkers(map, spotData, coords);
+      setListings(spotData);
     }
 
-    // ⭐ Cluster group for stadiums
+    // Stadium markers (unchanged)
     const cluster = L.markerClusterGroup();
-
-    // ⭐ Stadium markers
-    stadiums
-      .filter((s) => filter === "ALL" || s.league === filter)
-      .forEach((s) => {
-        const marker = L.marker([s.lat, s.lon], {
-          icon: logoMarker(s.logo),
-        }).bindPopup(`
-          <b>${s.name}</b><br>${s.team}<br>
-          <a target="_blank" href="https://www.google.com/maps?q=${s.lat},${s.lon}">Open in Maps</a>
-        `);
-
-        cluster.addLayer(marker);
+    stadiums.forEach((s) => {
+      const icon = L.icon({
+        iconUrl: s.logo,
+        iconSize: [45, 45],
       });
+
+      const marker = L.marker([s.lat, s.lon], { icon }).bindPopup(`
+        <b>${s.name}</b><br>${s.team}<br>
+        <a target="_blank" href="https://www.google.com/maps?q=${s.lat},${s.lon}">Open in Maps</a>
+      `);
+
+      cluster.addLayer(marker);
+    });
 
     map.addLayer(cluster);
 
     return () => map.remove();
-  }, [event, filter]);
+  }, [event]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 py-8">
@@ -222,31 +155,13 @@ async function loadNearbyParking(stadiumName, map) {
         <MapPin className="w-4 h-4" /> Back to Home
       </Button>
 
-      {/* FILTER BUTTONS */}
-      <div className="flex gap-2 mb-4 flex-wrap">
-        {["ALL", "NFL", "NBA", "MLB", "NHL"].map((l) => (
-          <Button
-            key={l}
-            onClick={() => setFilter(l)}
-            className={
-              filter === l
-                ? "bg-[#06B6D4] text-white"
-                : "bg-gray-300 text-black"
-            }
-          >
-            {l}
-          </Button>
-        ))}
-      </div>
-
+      {/* TITLE */}
       <h2 className="text-3xl font-bold text-[#0A2540] mb-3">
-        {event ? event.title : "All Major U.S. Stadiums"}
+        {event ? event.title : "Stadium Map"}
       </h2>
 
       <p className="text-gray-600 mb-6">
-        {event
-          ? event.venue?.name
-          : "Showing stadiums • host parking • live location"}
+        {event?.venue?.name || "Select a stadium to explore nearby parking"}
       </p>
 
       {/* MAP */}
@@ -260,107 +175,52 @@ async function loadNearbyParking(stadiumName, map) {
         }}
       ></div>
 
-      {/* SELECTED PARKING SPOT DETAILS (from map marker click) */}
-      {selectedSpot && (
-        <div className="mt-8">
-          <h3 className="text-2xl font-semibold mb-3">Selected Parking Spot</h3>
-          <div className="border p-4 rounded-xl shadow-sm bg-white flex justify-between">
-            <div>
-              <h4 className="font-bold text-lg">
-                {selectedSpot.owner?.name || "Host"}
-              </h4>
-              <p className="text-gray-600">{selectedSpot.address}</p>
-              {userCoords && selectedSpot.latitude && selectedSpot.longitude && (
-                <p className="text-gray-500">
-                  {getDistanceMiles(
-                    userCoords.latitude,
-                    userCoords.longitude,
-                    selectedSpot.latitude,
-                    selectedSpot.longitude
-                  )}{" "}
-                  miles away
+      {/* LISTINGS */}
+      <h3 className="text-2xl font-semibold mt-10 mb-4">Available Spots</h3>
+
+      <div className="grid gap-4">
+        {listings.map((spot) => (
+          <div
+            key={spot.id}
+            className="border p-4 rounded-xl shadow-sm bg-white cursor-pointer"
+            onClick={() => onNavigate("spotDetails", { spot })}
+          >
+            <div className="flex justify-between">
+              <div>
+                <h4 className="font-bold text-lg">{spot.host}</h4>
+                <p className="text-gray-600">
+                  {spot.distance} • {spot.walk}
                 </p>
-              )}
-              <p className="text-[#06B6D4] font-semibold text-lg">
-                ${selectedSpot.price}
-              </p>
-              <p className="text-sm text-gray-500">
-                Spaces Available: {selectedSpot.spacesAvailable}
-              </p>
-            </div>
 
-            <Button
-              className="bg-[#06B6D4] hover:bg-[#0891B2] text-white h-fit"
-              onClick={() =>
-                onNavigate("booking", {
-                  spot: selectedSpot,
-                })
-              }
-            >
-              Book Parking
-            </Button>
-          </div>
-        </div>
-      )}
-
-      {/* HOST PARKING LIST (all nearby spots) */}
-      {event && (
-        <div className="mt-10">
-          <h3 className="text-2xl font-semibold mb-4">Nearby Parking Spots</h3>
-
-          {listings.length === 0 && (
-            <p className="text-gray-500">No hosts listed near this stadium yet.</p>
-          )}
-
-          <div className="grid gap-4">
-            {listings.map((listing) => {
-              const origin = getEventCoords(event) || userCoords;
-              const miles = origin
-                ? getDistanceMiles(
-                    origin.lat ?? origin.latitude,
-                    origin.lon ?? origin.longitude,
-                    listing.lat,
-                    listing.lng
-                  )
-                : listing.distanceKm
-                ? Number((listing.distanceKm * 0.621371).toFixed(2))
-                : null;
-
-              return (
-                <div
-                  key={listing._id}
-                  className="border p-4 rounded-xl shadow-sm bg-white"
-                >
-                  <div className="flex justify-between">
-                    <div>
-                      <h4 className="font-bold text-lg">
-                        {listing.title || listing.closestStadium || "Parking Spot"}
-                      </h4>
-                      <p className="text-gray-600">{listing.address}</p>
-                      {miles && (
-                        <p className="text-gray-500">{miles} miles away</p>
-                      )}
-                      <p className="text-[#06B6D4] font-semibold text-lg">
-                        ${listing.price}
-                      </p>
-                      <p className="text-sm text-gray-500">
-                        Spaces Available: {listing.spacesAvailable - (listing.bookedSpaces || 0)}
-                      </p>
-                    </div>
-
-                    <Button
-                      className="bg-[#06B6D4] hover:bg-[#0891B2] text-white h-fit"
-                      onClick={() => handleListingSelect(listing)}
+                <div className="flex gap-2 flex-wrap mt-2">
+                  {spot.features.map((f, idx) => (
+                    <span
+                      key={idx}
+                      className="bg-cyan-100 text-cyan-700 px-2 py-1 text-xs rounded-lg"
                     >
-                      Book Parking
-                    </Button>
-                  </div>
+                      {f}
+                    </span>
+                  ))}
                 </div>
-              );
-            })}
+
+                <p className="text-orange-600 mt-2 text-sm">
+                  Only {spot.spotsLeft} spot left!
+                </p>
+              </div>
+
+              <div className="text-right">
+                <p className="text-2xl font-semibold text-[#06B6D4]">
+                  ${spot.price}
+                </p>
+                <Button className="mt-2 bg-[#06B6D4] hover:bg-[#0891B2] text-white">
+                  View Spot
+                </Button>
+              </div>
+            </div>
           </div>
-        </div>
-      )}
+        ))}
+      </div>
+
     </div>
   );
 }

@@ -17,7 +17,8 @@ export function SpotDetails({ onNavigate, spotData }) {
     <div className="max-w-3xl mx-auto px-4 py-10">
 
       {/* BACK */}
-      <Button onClick={() => onNavigate("map")} className="mb-6">
+      <Button onClick={() => onNavigate("home")} className="mb-6">
+
         ← Back
       </Button>
 

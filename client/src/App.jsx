@@ -6,6 +6,7 @@ import ForgotPassword from "./pages/Auth/ForgotPassword";
 
 import { HomeScreen } from "./figma/HomeScreen";
 import { MapView } from "./figma/MapView";
+import { SpotDetails } from "./figma/SpotDetails";   // ⭐ ADDED
 import { HostDashboard } from "./figma/HostDashboard";
 import { BookingConfirmation } from "./figma/BookingConfirmation";
 import MyBookings from "./figma/MyBookings";
@@ -21,16 +22,17 @@ import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { apiFetch } from "./lib/api";
 
-// ⭐ Import correct JSX version
+// Payment methods
 import PaymentMethodsPage from "./pages/PaymentMethodsPage.jsx";
 
 export default function App() {
   const location = useLocation();
 
-  /* Hide navbar for login & signup */
+  // Hide navbar on auth pages
   const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
+  // Custom view navigation
   const [view, setView] = useState("home");
   const [data, setData] = useState(null);
 
@@ -62,6 +64,11 @@ export default function App() {
                 {/* MAP */}
                 {view === "map" && (
                   <MapView onNavigate={onNavigate} viewData={data} />
+                )}
+
+                {/* ⭐ SPOT DETAILS (FIXED) */}
+                {view === "spotDetails" && (
+                  <SpotDetails onNavigate={onNavigate} spotData={data} />
                 )}
 
                 {/* HOST DASHBOARD */}
@@ -122,7 +129,7 @@ export default function App() {
                   />
                 )}
 
-                {/* ⭐ PAYMENT METHODS PAGE */}
+                {/* PAYMENT METHODS */}
                 {view === "payment-methods" && (
                   <PaymentMethodsPage onNavigate={onNavigate} />
                 )}
