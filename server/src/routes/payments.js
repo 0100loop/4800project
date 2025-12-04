@@ -16,6 +16,11 @@ if (!STRIPE_KEY) {
   console.error("❌ Missing STRIPE_SECRET_KEY in .env");
 }
 
+const CLIENT_BASE_URL =
+  process.env.CLIENT_BASE_URL ||
+  process.env.FRONTEND_BASE_URL ||
+  "http://localhost:5173";
+
 const stripe = new Stripe(STRIPE_KEY);
 
 /* ============================================
@@ -44,7 +49,7 @@ async function getOrCreateCustomer(userId) {
 /* ============================================
    SAVE CARD (CREATE SETUP INTENT)
 ============================================ */
-router.post("/save-card", auth("user"), async (req, res) => {
+router.post("/save-card", auth(), async (req, res) => {
   try {
     const customerId = await getOrCreateCustomer(req.user.id);
 
@@ -63,7 +68,7 @@ router.post("/save-card", auth("user"), async (req, res) => {
 /* ============================================
    GET SAVED CARDS
 ============================================ */
-router.get("/cards", auth("user"), async (req, res) => {
+router.get("/cards", auth(), async (req, res) => {
   try {
     const customerId = await getOrCreateCustomer(req.user.id);
 
@@ -82,7 +87,7 @@ router.get("/cards", auth("user"), async (req, res) => {
 /* ============================================
    DELETE SAVED CARD
 ============================================ */
-router.delete("/cards/:pmId", auth("user"), async (req, res) => {
+router.delete("/cards/:pmId", auth(), async (req, res) => {
   try {
     const { pmId } = req.params;
 
@@ -98,7 +103,7 @@ router.delete("/cards/:pmId", auth("user"), async (req, res) => {
 /* ============================================
    CHECKOUT SESSION (EXISTING LOGIC PRESERVED)
 ============================================ */
-router.post("/checkout-session", auth("user"), async (req, res) => {
+router.post("/checkout-session", auth(), async (req, res) => {
   try {
     const { listingId } = req.body;
 
@@ -120,12 +125,14 @@ router.post("/checkout-session", auth("user"), async (req, res) => {
       return res.status(404).json({ error: "Spot not found for this listing" });
     }
 
+    const user = await User.findById(req.user.id);
+
     const amount = listing.price * 100;
 
     const session = await stripe.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
-      customer_email: req.user.email || undefined,
+      customer_email: user?.email || undefined,
       metadata: {
         listingId: listing._id.toString(),
         spotId: spot._id.toString(),
@@ -144,8 +151,8 @@ router.post("/checkout-session", auth("user"), async (req, res) => {
           quantity: 1,
         },
       ],
-      success_url: `${process.env.CLIENT_BASE_URL}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${process.env.CLIENT_BASE_URL}/payments/cancel`,
+      success_url: `${CLIENT_BASE_URL}/payments/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${CLIENT_BASE_URL}/payments/cancel`,
     });
 
     res.json({
@@ -161,7 +168,7 @@ router.post("/checkout-session", auth("user"), async (req, res) => {
 /* ============================================
    CONFIRM CHECKOUT SESSION
 ============================================ */
-router.post("/confirm", auth("user"), async (req, res) => {
+router.post("/confirm", auth(), async (req, res) => {
   try {
     const { sessionId } = req.body;
 

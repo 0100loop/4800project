@@ -1,8 +1,23 @@
 import express from "express";
-import Spot from "../models/Spot.js";
 import axios from "axios";
+import Spot from "../models/Spot.js";
+import Listing from "../models/Listing.js";
+import { upsertListingFromSpot } from "../utils/listingSync.js";
 
 const router = express.Router();
+
+async function geocodeAddress(address) {
+  if (!address) return null;
+  const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(
+    address
+  )}`;
+  const geoRes = await axios.get(geoURL);
+  if (!geoRes.data.length) return null;
+  return {
+    latitude: Number(geoRes.data[0].lat),
+    longitude: Number(geoRes.data[0].lon),
+  };
+}
 
 /* =============================================
    Middleware: Require Auth (example)
@@ -38,10 +53,22 @@ router.post("/", auth(), async (req, res) => {
 ============================================= */
 router.put("/:id", auth(), async (req, res) => {
   try {
-    const { address, closestStadium, price, spacesAvailable } = req.body;
+    const spot = await Spot.findById(req.params.id);
+    if (!spot) return res.status(404).json({ error: "Spot not found" });
 
-    let latitude = null;
-    let longitude = null;
+    const {
+      hostName,
+      title,
+      description,
+      address,
+      closestStadium,
+      price,
+      spacesAvailable,
+      eventDate,
+      startTime,
+      endTime,
+      amenities,
+    } = req.body;
 
     if (address) {
       const geoURL = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(

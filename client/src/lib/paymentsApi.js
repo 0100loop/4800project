@@ -20,3 +20,16 @@ export function deleteCard(pmId) {
     auth: true,
   });
 }
+
+/* ===== CREATE CHECKOUT SESSION ===== */
+export function createCheckoutSession(listingId) {
+  if (!listingId) {
+    return Promise.reject(new Error("listingId is required"));
+  }
+
+  return apiFetch("/payments/checkout-session", {
+    method: "POST",
+    auth: true,
+    body: { listingId },
+  });
+}
