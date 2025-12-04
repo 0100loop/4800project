@@ -36,12 +36,36 @@ export default function Home() {
 
   async function runSearch() {
     if (!searchQuery.trim()) return;
+    
+    // LA Stadiums list
+    const laStadiums = [
+      "SoFi Stadium",
+      "Crypto.com Arena",
+      "Intuit Dome",
+      "Dodger Stadium",
+      "Rose Bowl",
+      "Banc of California Stadium",
+      "Los Angeles Memorial Coliseum"
+    ];
+    
+    // Check if search matches any LA stadium
+    const matchedStadium = laStadiums.find(stadium =>
+      stadium.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      searchQuery.toLowerCase().includes(stadium.toLowerCase())
+    );
+    
+    if (!matchedStadium) {
+      alert("Please search for a Los Angeles stadium (e.g., SoFi Stadium, Crypto.com Arena, Intuit Dome, Dodger Stadium, Rose Bowl)");
+      return;
+    }
+    
+    // Search for events at the matched stadium
     const r = await fetch(
-      `/api/events?venue=${encodeURIComponent(searchQuery)}&range=week`
+      `/api/events?venue=${encodeURIComponent(matchedStadium)}&range=week`
     );
     if (!r.ok) return alert("Search failed");
     const events = await r.json();
-    nav("/map", { state: { q: searchQuery, events } });
+    nav("/map", { state: { q: matchedStadium, events } });
   }
 
   return (

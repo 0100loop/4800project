@@ -20,9 +20,13 @@ import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import { apiFetch } from "./lib/api";
 
+// ⭐ Import correct JSX version
+import PaymentMethodsPage from "./pages/PaymentMethodsPage.jsx";
+
 export default function App() {
   const location = useLocation();
 
+  /* Hide navbar for login & signup */
   const hideNavbarRoutes = ["/login", "/signup", "/auth-success"];
   const showNavbar = !hideNavbarRoutes.includes(location.pathname);
 
@@ -39,36 +43,48 @@ export default function App() {
       {showNavbar && <Navbar onNavigate={onNavigate} />}
 
       <Routes>
-        {/* AUTH */}
+        {/* PUBLIC ROUTES */}
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/forgot-password" element={<ForgotPassword />} />
         <Route path="/auth-success" element={<AuthSuccess />} />
 
-        {/* PROTECTED AREA */}
+        {/* PROTECTED ROUTES */}
         <Route
           path="*"
           element={
             <ProtectedRoute>
               <>
+                {/* HOME */}
                 {view === "home" && <HomeScreen onNavigate={onNavigate} />}
 
+                {/* MAP */}
                 {view === "map" && (
                   <MapView onNavigate={onNavigate} viewData={data} />
                 )}
 
+                {/* HOST DASHBOARD */}
                 {view === "host" && (
-                  <HostDashboard onNavigate={onNavigate} apiFetch={apiFetch} />
+                  <HostDashboard
+                    onNavigate={onNavigate}
+                    apiFetch={apiFetch}
+                  />
                 )}
 
+                {/* USER BOOKINGS */}
                 {view === "bookings" && (
-                  <MyBookings onNavigate={onNavigate} apiFetch={apiFetch} />
+                  <MyBookings
+                    onNavigate={onNavigate}
+                    apiFetch={apiFetch}
+                  />
                 )}
 
+                {/* USER PROFILE */}
                 {view === "profile" && (
                   <UserProfile onNavigate={onNavigate} />
                 )}
 
+                {/* SPOT MANAGEMENT */}
                 {view === "spotManagement" && (
                   <SpotManagement
                     onNavigate={onNavigate}
@@ -77,18 +93,26 @@ export default function App() {
                   />
                 )}
 
+                {/* CREATE LISTING */}
                 {view === "createListing" && (
                   <CreateListing
                     spotId={data?.spotId || data?.id}
                     onBack={() => onNavigate("spotManagement", data)}
+                    onNavigate={onNavigate}
                   />
                 )}
 
+                {/* BOOKING CONFIRMATION */}
                 {view === "book" && (
                   <BookingConfirmation
                     onNavigate={onNavigate}
                     bookingData={data}
                   />
+                )}
+
+                {/* ⭐ PAYMENT METHODS PAGE */}
+                {view === "payment-methods" && (
+                  <PaymentMethodsPage onNavigate={onNavigate} />
                 )}
               </>
             </ProtectedRoute>
@@ -98,4 +122,3 @@ export default function App() {
     </>
   );
 }
-

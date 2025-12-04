@@ -1,10 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "../ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "../ui/card";
 import { Input } from "../ui/input";
 import { apiFetch } from "../lib/api";
 
-export function CreateListing({ spotId, onBack }) {
+interface CreateListingProps {
+  spotId: string;
+  onBack: () => void;
+  onNavigate?: (view: string, data?: any) => void;
+}
+
+export function CreateListing({ spotId, onBack, onNavigate }: CreateListingProps) {
   const [hostName, setHostName] = useState("");
   const [address, setAddress] = useState("");
   const [stadium, setStadium] = useState("");
@@ -14,6 +20,11 @@ export function CreateListing({ spotId, onBack }) {
   const [price, setPrice] = useState("");
   const [spaces, setSpaces] = useState("");
 
+  // Address autocomplete suggestions
+  const [addressSuggestions, setAddressSuggestions] = useState<string[]>([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const stadiumOptions = [
     "SoFi Stadium",
     "Crypto.com Arena",
@@ -21,26 +32,98 @@ export function CreateListing({ spotId, onBack }) {
     "LA Coliseum",
   ];
 
-  async function handleSubmit(e) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    await apiFetch(`/api/spots/${spotId}`, {
-      method: "PUT",
-      body: {
-        hostName,
-        address,
-        closestStadium: stadium,
-        eventDate,
-        startTime,
-        endTime,
-        price: Number(price),
-        spacesAvailable: Number(spaces),
-      },
-    });
+    try {
+      const updatedSpot = await apiFetch(`/api/spots/${spotId}`, {
+        method: "PUT",
+        body: {
+          hostName,
+          address,
+          closestStadium: stadium,
+          eventDate,
+          startTime,
+          endTime,
+          price: Number(price),
+          spacesAvailable: Number(spaces),
+        },
+      });
 
-    alert("Listing created successfully!");
-    onBack();
+      // If we have navigation available, jump straight to the map
+      if (onNavigate && updatedSpot) {
+        const venueName = updatedSpot.closestStadium || stadium;
+        const lat = updatedSpot.latitude;
+        const lon = updatedSpot.longitude;
+
+        if (!lat || !lon) {
+          alert(
+            "Listing saved, but we couldn't geocode the address. Please check the address format."
+          );
+          onBack();
+          return;
+        }
+
+        onNavigate("map", {
+          event: {
+            title: `${venueName} Parking`,
+            venue: {
+              name: venueName,
+              lat,
+              lon,
+            },
+          },
+        });
+      } else {
+        onBack();
+      }
+    } catch (err: any) {
+      console.error("Create listing error:", err);
+      alert(err.message || "Failed to create listing. Please try again.");
+    }
   }
+
+  // Address autocomplete (client-side Nominatim)
+  useEffect(() => {
+    if (!address.trim()) {
+      setAddressSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    setShowSuggestions(true);
+    setAddressLoading(true);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(async () => {
+      try {
+        const url = `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=5&q=${encodeURIComponent(
+          address.trim()
+        )}`;
+        const res = await fetch(url, { signal: controller.signal });
+        if (!res.ok) {
+          setAddressSuggestions([]);
+          return;
+        }
+        const data = await res.json();
+        const suggestions = (data || []).map(
+          (item: any) => item.display_name as string
+        );
+        setAddressSuggestions(suggestions);
+      } catch (err) {
+        if ((err as any).name !== "AbortError") {
+          console.error("Address autocomplete error:", err);
+        }
+      } finally {
+        setAddressLoading(false);
+      }
+    }, 400); // simple debounce
+
+    return () => {
+      clearTimeout(timeoutId);
+      controller.abort();
+    };
+  }, [address]);
 
   return (
     <div className="min-h-screen bg-white flex justify-center items-start py-10">
@@ -57,7 +140,7 @@ export function CreateListing({ spotId, onBack }) {
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-5">
 
-            {/* HOST NAME */}
+            {/* HOST NAME (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Host Name *
@@ -66,11 +149,12 @@ export function CreateListing({ spotId, onBack }) {
                 placeholder="Your Name"
                 value={hostName}
                 onChange={(e) => setHostName(e.target.value)}
+                className="bg-white text-[#0A2540]"
                 required
               />
             </div>
 
-            {/* ADDRESS */}
+            {/* ADDRESS (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Parking Address *
@@ -79,11 +163,34 @@ export function CreateListing({ spotId, onBack }) {
                 placeholder="123 Example St, Los Angeles, CA"
                 value={address}
                 onChange={(e) => setAddress(e.target.value)}
+                onFocus={() => address && setShowSuggestions(true)}
+                className="bg-white text-[#0A2540]"
                 required
               />
+              {showSuggestions && (addressSuggestions.length > 0 || addressLoading) && (
+                <div className="mt-2 border border-gray-200 rounded-lg bg-white shadow-sm max-h-48 overflow-y-auto text-sm z-50">
+                  {addressLoading && (
+                    <div className="px-3 py-2 text-gray-500">Searching…</div>
+                  )}
+                  {!addressLoading &&
+                    addressSuggestions.map((s, idx) => (
+                      <button
+                        key={idx}
+                        type="button"
+                        className="block w-full text-left px-3 py-2 hover:bg-gray-100 text-[#0A2540]"
+                        onClick={() => {
+                          setAddress(s);
+                          setShowSuggestions(false);
+                        }}
+                      >
+                        {s}
+                      </button>
+                    ))}
+                </div>
+              )}
             </div>
 
-            {/* STADIUM DROPDOWN */}
+            {/* STADIUM DROPDOWN (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Closest Stadium *
@@ -101,7 +208,7 @@ export function CreateListing({ spotId, onBack }) {
               </select>
             </div>
 
-            {/* EVENT DATE */}
+            {/* EVENT DATE (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Event Date *
@@ -110,11 +217,12 @@ export function CreateListing({ spotId, onBack }) {
                 type="date"
                 value={eventDate}
                 onChange={(e) => setEventDate(e.target.value)}
+                className="bg-white text-[#0A2540]"
                 required
               />
             </div>
 
-            {/* TIME RANGE */}
+            {/* TIME RANGE (LIVE INPUT) */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <div>
                 <label className="block mb-1 text-gray-800 font-medium text-sm">
@@ -124,6 +232,7 @@ export function CreateListing({ spotId, onBack }) {
                   type="time"
                   value={startTime}
                   onChange={(e) => setStartTime(e.target.value)}
+                  className="bg-white text-[#0A2540]"
                   required
                 />
               </div>
@@ -136,12 +245,13 @@ export function CreateListing({ spotId, onBack }) {
                   type="time"
                   value={endTime}
                   onChange={(e) => setEndTime(e.target.value)}
+                  className="bg-white text-[#0A2540]"
                   required
                 />
               </div>
             </div>
 
-            {/* PRICE */}
+            {/* PRICE (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Price ($) *
@@ -151,12 +261,13 @@ export function CreateListing({ spotId, onBack }) {
                 placeholder="e.g., 25"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
+                className="bg-white text-[#0A2540]"
                 required
               />
               <p className="text-xs text-gray-500">Recommended: $15–$35</p>
             </div>
 
-            {/* SPACES */}
+            {/* SPACES (LIVE INPUT) */}
             <div>
               <label className="block mb-1 text-gray-800 font-medium text-sm">
                 Spaces Available *
@@ -167,8 +278,46 @@ export function CreateListing({ spotId, onBack }) {
                 placeholder="e.g., 1"
                 value={spaces}
                 onChange={(e) => setSpaces(e.target.value)}
+                className="bg-white text-[#0A2540]"
                 required
               />
+            </div>
+
+            {/* LIVE PREVIEW OF LISTING */}
+            <div className="mt-6 border rounded-xl p-4 bg-gray-50">
+              <h3 className="text-lg font-semibold text-[#0A2540] mb-2">
+                Listing Preview
+              </h3>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Host:</span>{" "}
+                {hostName || "Your name here"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Address:</span>{" "}
+                {address || "Parking address"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Closest Stadium:</span>{" "}
+                {stadium || "Select stadium"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Date:</span>{" "}
+                {eventDate || "Select date"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Time:</span>{" "}
+                {startTime && endTime
+                  ? `${startTime} – ${endTime}`
+                  : "Select times"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Price:</span>{" "}
+                {price ? `$${price}` : "Set a price"}
+              </p>
+              <p className="text-sm text-gray-700">
+                <span className="font-medium">Spaces:</span>{" "}
+                {spaces || "Number of spaces"}
+              </p>
             </div>
 
             {/* BUTTONS */}

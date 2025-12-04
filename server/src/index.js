@@ -1,16 +1,31 @@
-import http from "http";
-import app from "./app.js";
-import dotenv from "dotenv";
+import express from "express";
+import cors from "cors";
 import { connectDB } from "./database.js";
+import authRoutes from "./routes/auth.js";
+import spotRoutes from "./routes/spots.js";
+import listingRoutes from "./routes/listings.js";
+import bookingRoutes from "./routes/bookings.js";
+import paymentsRoutes from "./routes/payments.js";   // ⭐ ADDED
 
-dotenv.config();
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-// Connect to MongoDB BEFORE starting server
 connectDB();
 
-const PORT = process.env.PORT || 5000;
-const server = http.createServer(app);
+// ROUTES
+app.use("/api/auth", authRoutes);
+app.use("/api/spots", spotRoutes);
+app.use("/api/listings", listingRoutes);
+app.use("/api/bookings", bookingRoutes);
 
-server.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+// ⭐ MOUNT PAYMENT ROUTES CORRECTLY
+app.use("/payments", paymentsRoutes);
+
+app.get("/", (req, res) => {
+  res.send("API is running...");
 });
+
+// START SERVER
+const PORT = process.env.PORT || 5000;
+app.listen(PORT, () => console.log(`Server running on port ${PORT}`));

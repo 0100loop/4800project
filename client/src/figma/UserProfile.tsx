@@ -10,6 +10,7 @@ import {
   Award,
   Bell,
   CreditCard,
+  LogOut,
 } from "lucide-react";
 
 import { Button } from "../ui/button";
@@ -82,7 +83,6 @@ export function UserProfile({ onNavigate }: UserProfileProps) {
       });
 
       setUser(res.user);
-
       localStorage.setItem("userName", res.user.name);
       if (res.user.avatar)
         localStorage.setItem("userAvatar", res.user.avatar);
@@ -95,15 +95,17 @@ export function UserProfile({ onNavigate }: UserProfileProps) {
 
   return (
     <div className="w-full min-h-screen">
-      {/* HEADER */}
+      {/* ===================== HEADER ===================== */}
       <div className="bg-[#0A2540] text-white px-6 py-10">
         <div className="flex items-center justify-between">
           <ArrowLeft
             className="cursor-pointer"
             onClick={() => onNavigate("home")}
           />
-          <h2 className="text-xl font-semibold flex-1 text-center">Profile</h2>
-          <Settings />
+          <h2 className="text-xl font-semibold flex-1 text-center">
+            Profile
+          </h2>
+          <Settings className="opacity-80" />
         </div>
 
         {/* AVATAR + NAME */}
@@ -113,7 +115,7 @@ export function UserProfile({ onNavigate }: UserProfileProps) {
               src={user.avatar}
               className="w-28 h-28 rounded-full border-4 border-white object-cover shadow"
             />
-            <div className="absolute bottom-0 right-0 bg-[#06B6D4] p-2 rounded-full">
+            <div className="absolute bottom-0 right-0 bg-[#06B6D4] p-2 rounded-full cursor-pointer">
               <Camera className="w-4 h-4 text-white" />
             </div>
           </div>
@@ -125,9 +127,10 @@ export function UserProfile({ onNavigate }: UserProfileProps) {
         </div>
       </div>
 
-      {/* BODY */}
+      {/* ===================== BODY ===================== */}
       <div className="max-w-4xl mx-auto px-4 py-8 space-y-8">
-        {/* PERSONAL INFO */}
+
+        {/* ================= PERSONAL INFO CARD ================= */}
         <Card className="p-6 shadow-sm rounded-xl">
           <div className="flex justify-between items-center mb-4">
             <h3 className="text-xl font-semibold text-[#0A2540]">
@@ -220,29 +223,65 @@ export function UserProfile({ onNavigate }: UserProfileProps) {
           )}
         </Card>
 
-        {/* QUICK ACTIONS */}
+        {/* ================= QUICK ACTIONS ================= */}
         <Card className="p-6 shadow-sm rounded-xl">
           <h3 className="text-xl font-semibold text-[#0A2540] mb-4">
             Quick Actions
           </h3>
+<div
+  className="flex items-center gap-3 cursor-pointer"
+  onClick={() => onNavigate("payment-methods")}
+>
+  <CreditCard className="text-[#06B6D4]" />
+  <p className="text-[#0A2540]">Payment Methods</p>
+</div>
+
 
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
+
+            {/* View Bookings */}
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => onNavigate("bookings")}
+            >
               <Award className="text-[#06B6D4]" />
-              <p className="text-[#0A2540]">View My Bookings</p>
+              <p className="text-[#0A2540]">My Bookings</p>
             </div>
 
+            {/* Become a Host */}
             <div
               className="flex items-center gap-3 cursor-pointer"
               onClick={() => onNavigate("host")}
             >
               <Shield className="text-[#06B6D4]" />
-              Become a Host
+              <p className="text-[#0A2540]">Become a Host</p>
             </div>
 
-            <div className="flex items-center gap-3">
+            {/* Notifications */}
+            <div className="flex items-center gap-3 cursor-pointer">
               <Bell className="text-[#06B6D4]" />
-              Notifications
+              <p className="text-[#0A2540]">Notifications</p>
+            </div>
+
+            {/* ⭐ PAYMENT METHODS (NEW) */}
+            <div
+              className="flex items-center gap-3 cursor-pointer"
+              onClick={() => onNavigate("payment-methods")}
+            >
+              <CreditCard className="text-[#06B6D4]" />
+              <p className="text-[#0A2540]">Payment Methods</p>
+            </div>
+
+            {/* Logout */}
+            <div
+              className="flex items-center gap-3 cursor-pointer text-red-600"
+              onClick={() => {
+                localStorage.clear();
+                onNavigate("home");
+              }}
+            >
+              <LogOut className="text-red-600" />
+              <p>Log Out</p>
             </div>
           </div>
         </Card>

@@ -12,9 +12,12 @@ const UserSchema = new mongoose.Schema({
   location: { type: String },
 
   memberSince: { type: Date, default: Date.now },
-resetPasswordToken: String,
-resetPasswordExpire: Date,
 
+  resetPasswordToken: String,
+  resetPasswordExpire: Date,
+
+  // ⭐ Needed for Stripe card saving
+  stripeCustomerId: { type: String, default: null },
 });
 
 export default mongoose.model("User", UserSchema);
