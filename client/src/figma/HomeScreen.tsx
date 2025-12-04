@@ -92,10 +92,18 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
   };
 
   const handleVenueSelect = (venue: typeof allVenues[0]) => {
-    setSearchQuery('');
-    setShowSearchResults(false);
-    onNavigate('map', { venue });
-  };
+  setSearchQuery("");
+  setShowSearchResults(false);
+
+  onNavigate("map", {
+    venue: {
+      name: venue.name,
+      city: venue.city,
+      type: venue.type,
+    },
+    event: null
+  });
+};
 
   const clearSearch = () => {
     setSearchQuery('');
@@ -195,7 +203,22 @@ export function HomeScreen({ onNavigate }: HomeScreenProps) {
             <Card 
               key={event.id} 
               className="overflow-hidden hover:shadow-lg transition-shadow cursor-pointer border-gray-200"
-              onClick={() => onNavigate('map', { event, venue: allVenues.find(v => v.name === event.venue) })}
+              onClick={() =>
+                onNavigate("map", {
+                  event: {
+                    id: event.id,
+                    name: event.name,
+                    date: event.date,
+                    venueName: event.venue,
+                  },
+                  venue: allVenues.find(v => v.name === event.venue) || {
+                    name: event.venue,   // fallback (still center map)
+                    city: "Los Angeles, CA",
+                    type: "Event Venue",
+                  }
+                })
+              }
+
             >
               <div className="relative h-40">
                 <ImageWithFallback

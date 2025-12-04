@@ -1,15 +1,51 @@
 import { useState, useEffect } from "react";
 import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
 import { Icon } from "leaflet";
-import { MapPin, Navigation, Clock, Filter, ChevronLeft, Search } from "lucide-react";
+import {
+  MapPin,
+  Navigation,
+  Clock,
+  Filter,
+  ChevronLeft,
+  Search,
+} from "lucide-react";
 import { Button } from "../ui/button";
 import { Card, CardContent } from "../ui/card";
-import { Badge } from "../ui/badge";
 import { Input } from "../ui/input";
 import "leaflet/dist/leaflet.css";
 import { apiFetch } from "../lib/api";
 
-// Fix for default leaflet marker
+/* ============================================================
+    GEOCODING — fetch coordinates for ANY venue name
+============================================================ */
+async function geocodeVenue(name) {
+  try {
+    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+      name
+    )}`;
+
+    const res = await fetch(url, {
+      headers: { "User-Agent": "parking-app" },
+    });
+
+    const data = await res.json();
+    if (!data.length) return null;
+
+    return {
+      lat: parseFloat(data[0].lat),
+      lng: parseFloat(data[0].lon),
+    };
+  } catch (err) {
+    console.error("Geocoding error:", err);
+    return null;
+  }
+}
+
+/* ============================================================
+    LEAFLET MARKERS
+============================================================ */
+
+// Fix default Leaflet marker icons
 delete Icon.Default.prototype._getIconUrl;
 Icon.Default.mergeOptions({
   iconRetinaUrl:
@@ -20,26 +56,44 @@ Icon.Default.mergeOptions({
     "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
 });
 
-const venueCoordinates = {
-  "Crypto.com Arena": [34.043, -118.2673],
-  "SoFi Stadium": [33.9533, -118.339],
-  "Dodger Stadium": [34.0739, -118.24],
-  "Rose Bowl Stadium": [34.1613, -118.1676],
-  "Hollywood Bowl": [34.1122, -118.3396],
-};
+// Red marker = venue
+export const redMarker = new Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-red.png",
+  iconRetinaUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-red.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
+
+// Blue marker = parking spots
+export const blueMarker = new Icon({
+  iconUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-blue.png",
+  iconRetinaUrl:
+    "https://raw.githubusercontent.com/pointhi/leaflet-color-markers/master/img/marker-icon-2x-blue.png",
+  shadowUrl:
+    "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 export function MapView({ onNavigate, viewData }) {
   const [selected, setSelected] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showVenueSearch, setShowVenueSearch] = useState(false);
-  const [listings, setListings] = useState([]);
-  const [loading, setLoading] = useState(true);
 
-  const currentVenue = viewData?.venue?.name || viewData?.venue || "Crypto.com Arena";
+  const [spots, setSpots] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [mapCenter, setMapCenter] = useState([34.05, -118.25]); // fallback LA
+
+  const currentVenue =
+    viewData?.venue?.name || viewData?.venue || "Crypto.com Arena";
+
   const eventName = viewData?.event?.name || "Find Parking";
   const eventDate = viewData?.event?.date || null;
-
-  const [mapCenter, setMapCenter] = useState(venueCoordinates[currentVenue]);
 
   const availableVenues = [
     { id: 1, name: "Crypto.com Arena", city: "Los Angeles, CA" },
@@ -55,42 +109,44 @@ export function MapView({ onNavigate, viewData }) {
       )
     : availableVenues;
 
-  /* ========================================================
-      LOAD LISTINGS BY RADIUS + EVENT DATE
-  ======================================================== */
+  /* ============================================================
+      UPDATE MAP CENTER WHEN VENUE CHANGES
+  ============================================================ */
   useEffect(() => {
-    async function loadListings() {
+    async function updateCenter() {
+      const coords = await geocodeVenue(currentVenue);
+      if (coords) {
+        setMapCenter([coords.lat, coords.lng]);
+      }
+    }
+    updateCenter();
+  }, [currentVenue]);
+
+  /* ============================================================
+      LOAD SPOTS BASED ON THE NEW MAP CENTER
+  ============================================================ */
+  useEffect(() => {
+    async function loadSpots() {
       try {
         setLoading(true);
 
-        const [lat, lng] = venueCoordinates[currentVenue];
-        const radius = 2500; // meters = ~1.2 miles
+        const [lat, lng] = mapCenter;
+        const radius = 3000;
 
-        const dateQuery = eventDate ? `&date=${eventDate}` : "";
-
-        console.log('Fetching listings with:', { lat, lng, radius, dateQuery });
         const data = await apiFetch(
-          `/api/listings?lat=${lat}&lng=${lng}&radius=${radius}${dateQuery}`
+          `/api/spots?lat=${lat}&lng=${lng}&radius=${radius}`
         );
 
-        setListings(data);
+        setSpots(data);
       } catch (err) {
-        console.error("Failed to load listings", err);
+        console.error("Failed to load spots", err);
       } finally {
         setLoading(false);
       }
     }
 
-    loadListings();
-  }, [currentVenue, eventDate]);
-
-  /* ========================================================
-      UPDATE MAP CENTER WHEN VENUE CHANGES
-  ======================================================== */
-  useEffect(() => {
-    const coords = venueCoordinates[currentVenue];
-    if (coords) setMapCenter(coords);
-  }, [currentVenue]);
+    loadSpots();
+  }, [mapCenter]);
 
   return (
     <div className="h-screen flex flex-col bg-white">
@@ -173,12 +229,12 @@ export function MapView({ onNavigate, viewData }) {
           key={`${mapCenter[0]}-${mapCenter[1]}`}
         >
           <TileLayer
-            attribution='&copy; OpenStreetMap contributors'
+            attribution="&copy; OpenStreetMap contributors"
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {/* Venue Marker */}
-          <Marker position={mapCenter}>
+          {/* Venue marker */}
+          <Marker position={mapCenter} icon={redMarker}>
             <Popup>
               <strong>{currentVenue}</strong>
               <br />
@@ -186,30 +242,31 @@ export function MapView({ onNavigate, viewData }) {
             </Popup>
           </Marker>
 
-          {/* Listing Markers */}
-          {listings.map((l) => (
+          {/* Parking spots */}
+          {spots.map((s) => (
             <Marker
-              key={l._id}
+              icon={blueMarker}
+              key={s._id}
               position={[
-                l.location.coordinates[1], // lat
-                l.location.coordinates[0], // lng
+                s.location.coordinates[1],
+                s.location.coordinates[0],
               ]}
               eventHandlers={{
-                click: () => setSelected(l._id),
+                click: () => setSelected(s._id),
               }}
             >
               <Popup>
                 <div className="text-sm">
-                  <strong>${l.price}</strong>
+                  <strong>${s.pricePerEvent}</strong>
                   <br />
-                  {l.eventName}
+                  {s.address}
                 </div>
               </Popup>
             </Marker>
           ))}
         </MapContainer>
 
-        {/* My Location Button */}
+        {/* MY LOCATION BUTTON */}
         <Button
           className="absolute top-4 right-4 bg-white text-[#0A2540] hover:bg-gray-50 shadow-lg rounded-full z-30"
           size="icon"
@@ -224,30 +281,30 @@ export function MapView({ onNavigate, viewData }) {
         </Button>
       </div>
 
-      {/* LISTING CARDS */}
+      {/* SPOT CARDS */}
       <div className="bg-white rounded-t-3xl shadow-2xl max-h-[50vh] overflow-y-auto">
         <div className="sticky top-0 bg-white px-4 pt-4 pb-2 border-b border-gray-100">
           <div className="w-12 h-1 bg-gray-300 rounded-full mx-auto mb-3" />
-          <h3 className="text-[#0A2540]">{listings.length} Listings Available</h3>
+          <h3 className="text-[#0A2540]">{spots.length} Spots Available</h3>
           <p className="text-gray-600 text-sm mt-1">Sorted by distance</p>
         </div>
 
         <div className="p-4 space-y-3">
-          {listings.map((l) => (
+          {spots.map((s) => (
             <Card
-              key={l._id}
+              key={s._id}
               className={`cursor-pointer transition-all ${
-                selected === l._id
+                selected === s._id
                   ? "border-[#06B6D4] border-2 shadow-md"
                   : "border-gray-200 hover:shadow-md"
               }`}
               onClick={() => {
-                setSelected(l._id);
+                setSelected(s._id);
                 setMapCenter([
-                  l.location.coordinates[1],
-                  l.location.coordinates[0],
+                  s.location.coordinates[1],
+                  s.location.coordinates[0],
                 ]);
-                onNavigate("spot", { listing: l });
+                onNavigate("spot", { spot: s });
               }}
             >
               <CardContent className="p-4">
@@ -258,22 +315,28 @@ export function MapView({ onNavigate, viewData }) {
 
                   <div className="flex-1">
                     <h4 className="text-[#0A2540] text-lg font-semibold">
-                      ${l.price}
+                      ${s.pricePerEvent}
                     </h4>
 
-                    <p className="text-sm text-gray-600">
-                      Spaces: {l.spacesAvailable - l.bookedSpaces} left
+                    <p className="text-sm text-gray-600 mt-1">
+                      {s.address}
                     </p>
 
-                    {l.distance && (
-                      <p className="text-sm text-gray-600 mt-1">
-                        📍 {l.distance.toFixed(2)} km •{" "}
-                        <Clock className="inline w-3 h-3" /> {Math.round(
-                          (l.distance / 0.08) // ~80m/min walking
-                        )}{" "}
-                        min walk
-                      </p>
-                    )}
+                    {s.distance !== undefined && (() => {
+                      const km = s.distance / 1000;
+                      const meters = s.distance;
+
+                      return (
+                        <p className="text-sm text-gray-600 mt-1">
+                          📍{" "}
+                          {km < 1
+                            ? `${Math.round(meters)} m`
+                            : `${km.toFixed(2)} km`}{" "}
+                          • <Clock className="inline w-3 h-3" />{" "}
+                          {Math.max(1, Math.round(meters / 80))} min walk
+                        </p>
+                      );
+                    })()}
                   </div>
                 </div>
               </CardContent>

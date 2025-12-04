@@ -50,11 +50,13 @@ interface ImportMeta {
 
 export function HostDashboard({ onNavigate }: HostDashboardProps) {
   const [isAddingSpot, setIsAddingSpot] = useState(false);
+  /*
   const [tailgateFriendly, setTailgateFriendly] = useState(false);
   const [overnightParking, setOvernightParking] = useState(false);
   const [bathroomAccess, setBathroomAccess] = useState(false);
   const [evCharging, setEvCharging] = useState(false);
   const [shuttleService, setShuttleService] = useState(false);
+  */
 
   const [address, setAddress] = useState("");
   const [description, setDescription] = useState("");
@@ -106,11 +108,13 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
       setDescription("");
       setPrice("");
       setSpaces("");
+      /*
       setTailgateFriendly(false);
       setOvernightParking(false);
       setBathroomAccess(false);
       setEvCharging(false);
       setShuttleService(false);
+      */
     };
 
     const handleSubmit = async () => {
@@ -118,11 +122,13 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
         title: description,
         pricePerEvent: price,
         address,
+        /*
         bathroom: bathroomAccess,
         evCharging,
         shuttle: shuttleService,
         tailgateFriendly,
         overnightAllowed: overnightParking,
+        */
         spaces,
       };
 
@@ -232,92 +238,6 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
                     }}
                     className="text-gray-900 placeholder-gray-500 bg-white"
                   />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="mb-6">
-            <CardHeader>
-              <CardTitle className="text-[#0A2540]">Amenities & Features</CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                    <Calendar className="w-5 h-5 text-[#06B6D4]" />
-                  </div>
-                  <div>
-                    <p className="text-gray-800 font-medium">Tailgate Friendly</p>
-                    <p className="text-sm text-gray-600">+$5 per booking</p>
-                  </div>
-                </div>
-                <Toggle enabled={tailgateFriendly} setEnabled={setTailgateFriendly} />
-              </div>
-
-              <Separator />
-
-              <div className="space-y-4">
-                {/* Overnight Parking */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                      <Calendar className="w-5 h-5 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-gray-800 font-medium">Overnight Parking</p>
-                      <p className="text-sm text-gray-600">+$5 per booking</p>
-                    </div>
-                  </div>
-                  <Toggle enabled={overnightParking} setEnabled={setOvernightParking} />
-                </div>
-
-                <Separator />
-
-                {/* Bathroom Access */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                      <HomeIcon className="w-5 h-5 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-gray-800 font-medium">Bathroom Access</p>
-                      <p className="text-sm text-gray-600">+$3 per booking</p>
-                    </div>
-                  </div>
-                  <Toggle enabled={bathroomAccess} setEnabled={setBathroomAccess} />
-                </div>
-
-                <Separator />
-
-                {/* EV Charging */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                      <Zap className="w-5 h-5 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-gray-800 font-medium">EV Charging</p>
-                      <p className="text-sm text-gray-600">+$8 per booking</p>
-                    </div>
-                  </div>
-                  <Toggle enabled={evCharging} setEnabled={setEvCharging} />
-                </div>
-
-                <Separator />
-
-                {/* Shuttle Service */}
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-[#06B6D4]/10 rounded-lg p-2">
-                      <Truck className="w-5 h-5 text-[#06B6D4]" />
-                    </div>
-                    <div>
-                      <p className="text-gray-800 font-medium">Shuttle Service</p>
-                      <p className="text-sm text-gray-600">+$5 per booking</p>
-                    </div>
-                  </div>
-                  <Toggle enabled={shuttleService} setEnabled={setShuttleService} />
                 </div>
               </div>
             </CardContent>

@@ -1,34 +1,42 @@
 import express from "express";
-import Booking from "../models/Booking.js";
-import Listing from "../models/Listing.js";
-import auth from "../middleware/auth.js";
+import Stripe from "stripe";
 
 const router = express.Router();
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
-// Create booking + (mock) pay
-router.post("/mock-checkout", auth(), async (req,res)=>{
+// POST /api/payments/create-checkout-session
+router.post("/create-checkout-session", async (req, res) => {
   try {
-    const { listingId, start, end } = req.body;
-    const listing = await Listing.findById(listingId);
-    if(!listing || !listing.available) return res.status(400).json({ error: "Listing not available" });
+    const { amount, bookingId } = req.body;
 
-    const durationHrs = Math.max(1, Math.ceil((new Date(end)-new Date(start)) / (1000*60*60)));
-    const amount = durationHrs * (listing.pricePerHour || 10);
+    if (!amount || !bookingId) {
+      return res.status(400).json({ error: "Missing amount or bookingId" });
+    }
 
-    const booking = await Booking.create({
-      userId: req.user.id,
-      listingId,
-      start: new Date(start),
-      end: new Date(end),
-      paid: true,
-      amount, currency: "usd"
+    const session = await stripe.checkout.sessions.create({
+      mode: "payment",
+
+      metadata: { bookingId },
+
+      line_items: [
+        {
+          price_data: {
+            currency: "usd",
+            product_data: { name: "Parking Spot Booking" },
+            unit_amount: Math.round(amount * 100),
+          },
+          quantity: 1,
+        },
+      ],
+
+      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:5173/cancel`,
     });
 
-    // (Optional) email both parties using sendMail here
-
-    res.json({ ok: true, booking });
-  } catch(e){
-    res.status(500).json({ error: e.message });
+    res.json({ url: session.url });
+  } catch (err) {
+    console.error("Stripe error:", err);
+    res.status(500).json({ error: "Stripe error" });
   }
 });
 

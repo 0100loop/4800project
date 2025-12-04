@@ -35,73 +35,83 @@ export function BookingConfirmation({
   const [cardNumber, setCardNumber] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [vehicleInfo, setVehicleInfo] = useState("");
 
   // Extract the actual listing from bookingData
-  const listing = bookingData?.listing || bookingData;  // Handle both structures
+  const spot = bookingData?.spot || bookingData;
 
-  // listing schema fields
-  const price = Number(listing?.price || 0);
-  const date = listing?.date
-    ? new Date(listing.date)
+
+  // spot schema fields
+  const price = Number(spot?.pricePerEvent || 0);
+  const date = spot?.date
+    ? new Date(spot.date)
     : new Date();
 
-  const startTime = listing?.startTime || "00:00";
-  const endTime = listing?.endTime || "00:00";
+  const distanceKm = Number(spot?.distanceKm || 0);
+  const distanceMeters = Number(spot?.distanceMeters || 0);
 
-  const distanceKm = Number(listing?.distanceKm || 0);
-  const distanceMeters = Number(listing?.distanceMeters || 0);
-
-  console.log('Parsed values:', { price, distanceKm, distanceMeters, startTime, endTime });
+  console.log('Parsed values:', { price, distanceKm, distanceMeters, spot });
 
   const total = price + 2.5;
 
   const handleConfirmBooking = async () => {
-  if (!email || !phone || !cardNumber) return;
+  if (!email || !phone) {
+    alert("Please enter your contact information.");
+    return;
+  }
 
-  // Construct booking data
+  // 1️⃣ Save the booking (unpaid) in your DB
   const bookingPayload = {
-    listingId: listing?._id,
+    spotId: spot?._id,
     email,
     phone,
-    vehicleInfo,
-    cardNumber,   // In production, NEVER send raw card numbers! Use a payment gateway.
-    total,
-    date: listing?.date || new Date().toISOString(),
+    totalPrice: total,
+    date: new Date().toISOString(),
+    paid: false,
   };
 
-  console.log('Submitting booking payload:', bookingPayload);  // SEE WHAT'S SENT
+  const bookingRes = await fetch("/api/bookings", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${localStorage.getItem("token")}`,
+    },
+    body: JSON.stringify(bookingPayload),
+  });
 
-  try {
-    // Send to your backend
-    const token = localStorage.getItem("token"); // or sessionStorage
-    const res = await fetch("/api/bookings", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-      body: JSON.stringify(bookingPayload),
-    });
-
-        console.log('Response status:', res.status);  // SEE STATUS
-
-     if (!res.ok) {
-      const errorData = await res.json();
-      console.error('Backend error:', errorData);  // SEE BACKEND ERROR
-      throw new Error(errorData.error || "Booking failed");
-    }
-
-    const result = await res.json();
-    console.log("Booking saved:", result);
-
-    // Show confirmation UI
-    setIsConfirmed(true);
-  } catch (err) {
-    console.error("Error submitting booking:", err);
-    alert("Failed to confirm booking. Please try again.");
+  if (!bookingRes.ok) {
+    const errText = await bookingRes.text();
+    console.error('Booking POST failed:', bookingRes.status, errText);
+    return alert('Failed to create booking: ' + (errText || bookingRes.status));
   }
+
+  const bookingResp = await bookingRes.json();
+  // backend currently returns { message, booking } — accept both shapes
+  const createdBooking = bookingResp.booking || bookingResp;
+  const bookingId = createdBooking?._id || createdBooking?.id;
+  if (!bookingId) {
+    console.error('Booking created but no id returned', bookingResp);
+    return alert('Booking created but no id returned from server');
+  }
+
+  // 2️⃣ Create Stripe Checkout session for this booking
+  const stripeSession = await fetch("/api/payments/create-checkout-session", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      amount: total,
+      bookingId,
+      spotId: spot._id
+    }),
+  });
+
+  const sessionData = await stripeSession.json();
+
+  if (!sessionData.url) return alert("Stripe error. Try again.");
+
+  // 3️⃣ Redirect to Stripe Checkout
+  window.location.href = sessionData.url;
 };
+
 
 
   if (isConfirmed) {
@@ -143,14 +153,6 @@ export function BookingConfirmation({
                         })}
                       </span>
                     </div>
-
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Time</span>
-                      <span className="text-[#0A2540]">
-                        {startTime} - {endTime}
-                      </span>
-                    </div>
-
                     <div className="flex justify-between">
                       <span className="text-gray-600">Location</span>
                       <span className="text-[#0A2540]">
@@ -238,8 +240,15 @@ export function BookingConfirmation({
                   <MapPin className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
                     <p className="text-[#0A2540]">
-                      {distanceKm > 0 ? `${distanceKm.toFixed(2)} km from destination` : 'Location information unavailable'}
+                      {spot.address}
                     </p>
+                    <p className="text-sm text-gray-600">
+                      {distanceKm ? `${distanceKm.toFixed(2)} km • ${Math.round(distanceMeters / 80)} min walk` : ''}
+                    </p>
+                    <p className="text-sm text-gray-600">
+                      Spaces available: {spot.spaces || 1}
+                    </p>
+
                     <p className="text-sm text-gray-600">
                       {distanceMeters > 0 ? `Approx ${Math.round(distanceMeters / 80)} min walk` : ''}
                     </p>
@@ -307,59 +316,27 @@ export function BookingConfirmation({
                     <Phone className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
-
-                <div>
-                  <Label htmlFor="vehicle" className="text-gray-700 mb-1">Vehicle Info (Optional)</Label>
-                  <Input
-                    id="vehicle"
-                    className="bg-white border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    placeholder="e.g., Black Honda Civic"
-                    value={vehicleInfo}
-                    onChange={(e) => setVehicleInfo(e.target.value)}
-                  />
-                </div>
               </div>
             </CardContent>
           </Card>
 
-          {/* PAYMENT METHOD */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <h3 className="text-[#0A2540] mb-4">Payment Method</h3>
+              <h3 className="text-[#0A2540] mb-4">Payment</h3>
 
-              <div className="space-y-4">
-                <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
-                  <div className="relative">
-                    <Input
-                      id="cardNumber"
-                      placeholder="1234 5678 9012 3456"
-                      value={cardNumber}
-                      onChange={(e) => setCardNumber(e.target.value)}
-                      className="pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent text-gray-800"
-                    />
-                    <CreditCard className="w-4 h-4 text-gray-400 absolute right-3 top-1/2 -translate-y-1/2" />
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiry" className="text-gray-700 mb-1">Expiry</Label>
-                    <Input id="expiry" placeholder="MM/YY" className="bg-white border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv" className="text-gray-700 mb-1">CVV</Label>
-                    <Input id="cvv" type="password" placeholder="123" maxLength={3} className="bg-white border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="name" className="text-gray-700 mb-1">Cardholder Name</Label>
-                  <Input id="name" placeholder="John Doe" className="bg-white border-gray-300 text-gray-900 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" />
-                </div>
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <p className="text-gray-700 text-sm mb-3">
+                  Payments are securely processed by Stripe.
+                </p>
+                <img
+                  src="https://stripe.com/img/v3/home/twitter.png"
+                  alt="Stripe"
+                  className="h-6 opacity-80"
+                />
               </div>
             </CardContent>
           </Card>
+
 
           {/* Security */}
           <div className="flex items-center gap-2 text-sm text-gray-600 justify-center mb-6">
@@ -374,7 +351,7 @@ export function BookingConfirmation({
         <div className="max-w-2xl mx-auto">
           <Button
             onClick={handleConfirmBooking}
-            disabled={!email || !phone || !cardNumber}
+            disabled={!email || !phone}
             className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white py-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <DollarSign className="w-4 h-4 mr-2" />

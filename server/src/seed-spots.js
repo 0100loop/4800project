@@ -1,18 +1,11 @@
 import mongoose from "mongoose";
+import Spot from "../models/Spot.js";
 
 const uri = process.env.MONGO_URI;
 if (!uri) {
   console.error("Missing MONGO_URI in env");
   process.exit(1);
 }
-
-const Spot =
-  mongoose.models.__ParkItSpot ||
-  mongoose.model(
-    "__ParkItSpot",
-    new mongoose.Schema({}, { strict: false }),
-    "spots"
-  );
 
 async function main() {
   await mongoose.connect(uri);
@@ -49,9 +42,48 @@ async function main() {
   ];
 
   // Create 2dsphere index for geo queries if missing
-  await mongoose.connection.db
-    .collection("spots")
-    .createIndex({ location: "2dsphere" });
+  const uri = process.env.MONGO_URI;
+
+if (!uri) {
+  console.error("Missing MONGO_URI in env");
+  process.exit(1);
+}
+
+async function main() {
+  await mongoose.connect(uri);
+  console.log("Connected to MongoDB");
+
+  // Ensure model indexes exist
+  await Spot.syncIndexes();
+
+  const docs = [
+    {
+      pricePerEvent: 25,
+      address: "100 3rd St, San Francisco, CA",
+      capacity: 1,
+      host: new mongoose.Types.ObjectId(), // placeholder
+      location: { type: "Point", coordinates: [-122.3893, 37.7786] },
+    },
+    {
+      pricePerEvent: 18,
+      address: "500 Terry Francois Blvd, SF",
+      capacity: 1,
+      host: new mongoose.Types.ObjectId(),
+      location: { type: "Point", coordinates: [-122.387, 37.7689] },
+    },
+  ];
+
+  await Spot.insertMany(docs);
+  console.log("Seeded spots:", docs.length);
+
+  await mongoose.disconnect();
+  console.log("Done");
+}
+
+main().catch((e) => {
+  console.error(e);
+  process.exit(1);
+});
 
   await mongoose.connection.db.collection("spots").insertMany(docs);
   console.log("Seeded spots:", docs.length);

@@ -1,88 +1,65 @@
 import express from "express";
 import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
-import Listing from "../models/Listing.js";
+import Spot from "../models/Spot.js";
 import auth from "../middleware/auth.js";
 
 const router = express.Router();
 
-// Create booking
-router.post("/", auth("user"), async (req, res) => {
+// CREATE BOOKING (Spot-based)
+router.post("/", auth(), async (req, res) => {
   try {
-    const { listingId, spotId, start, end, email, phone, vehicleInfo, total, date } = req.body;
-    
-    console.log('Booking request:', req.body);
+    console.log("Incoming booking body:", req.body);
 
-    // Handle both old format (spotId, start, end) and new format (listingId, date, total)
-    if (listingId) {
-      // New format from BookingConfirmation
-      const listing = await Listing.findById(listingId);
-      if (!listing) return res.status(404).json({ error: "Listing not found" });
+    const { spotId, email, phone, totalPrice, date } = req.body;
 
-      const booking = await Booking.create({
-        userId: req.user.id,
-        listingId: new mongoose.Types.ObjectId(listingId),
-        spotId: listing.spotId, // Get spotId from listing
-        email,
-        phone,
-        vehicleInfo,
-        totalPrice: total,
-        date: date || new Date(),
-        status: "confirmed",
-        paymentId: "PAY_" + Date.now(), // Mock payment
-      });
-
-      await Listing.findByIdAndUpdate(listingId, { booked: true });
-      return res.json({ message: "Booking confirmed", booking });
+    if (!spotId) {
+      return res.status(400).json({ error: "Missing spotId" });
     }
 
-    // Old format (legacy support)
-    const listing = await Listing.findById(spotId);
-    if (!listing) return res.status(404).json({ error: "Listing not found" });
+    const spot = await Spot.findById(spotId);
+    if (!spot) {
+      return res.status(404).json({ error: "Spot not found" });
+    }
 
-    const hours = Math.max(1, (new Date(end) - new Date(start)) / 3600000);
-    const totalPrice = Math.round(hours * (listing.pricePerHour || 10));
-    const paymentId = "PAY_" + Date.now();
-
+    // Create booking (not paid yet)
     const booking = await Booking.create({
       userId: req.user.id,
-      listingId: listing._id,
-      start,
-      end,
+      spotId: new mongoose.Types.ObjectId(spotId),
+      email,
+      phone,
       totalPrice,
-      status: "paid",
-      paymentId,
+      date: date || new Date(),
+      status: "pending",
+      paid: false,
     });
-    
-    res.json({ message: "Booking confirmed", booking });
+
+    console.log("Created new booking:", booking._id);
+    return res.status(201).json(booking);
+
   } catch (e) {
-    console.error('Booking error:', e);
-    res.status(400).json({ error: e.message });
+    console.error("Booking creation error:", e);
+    res.status(500).json({ error: e.message });
   }
 });
 
-// Get bookings - for hosts (by spotId) or guests (by userId)
-router.get("/", auth("user"), async (req, res) => {
+// GET BOOKINGS
+router.get("/", auth(), async (req, res) => {
   try {
-    const { spotId, upcoming } = req.query;
+    const { spotId } = req.query;
 
     if (spotId) {
-      // Host viewing bookings for their spot
-      const query = { spotId: new mongoose.Types.ObjectId(spotId) };
-      
-      if (upcoming === 'true') {
-        query.date = { $gte: new Date() };
-      }
-
-      const bookings = await Booking.find(query).sort({ date: 1 });
+      const bookings = await Booking.find({ spotId })
+        .sort({ date: 1 });
       return res.json(bookings);
     }
 
-    // Guest viewing their own bookings
-    const bookings = await Booking.find({ userId: req.user.id }).sort({ date: -1 });
+    const bookings = await Booking.find({ userId: req.user.id })
+      .sort({ date: -1 });
+
     res.json(bookings);
   } catch (e) {
-    console.error('Error fetching bookings:', e);
+    console.error("Fetch bookings error:", e);
     res.status(500).json({ error: e.message });
   }
 });
