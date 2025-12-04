@@ -46,22 +46,16 @@ router.post("/", auth(), async (req, res) => {
 // GET BOOKINGS
 router.get("/", auth(), async (req, res) => {
   try {
-    const { spotId } = req.query;
-
-    if (spotId) {
-      const bookings = await Booking.find({ spotId })
-        .sort({ date: 1 });
-      return res.json(bookings);
-    }
-
     const bookings = await Booking.find({ userId: req.user.id })
+      .populate("spotId") // ⬅ get address, price, etc.
       .sort({ date: -1 });
 
     res.json(bookings);
   } catch (e) {
-    console.error("Fetch bookings error:", e);
+    console.error("Error fetching bookings:", e);
     res.status(500).json({ error: e.message });
   }
 });
+
 
 export default router;

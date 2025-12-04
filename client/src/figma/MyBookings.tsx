@@ -25,6 +25,8 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
           method: 'GET',
           auth: true,
         });
+
+        
         
         console.log('Bookings loaded:', data);
         setBookings(data || []);
@@ -92,7 +94,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
               <h3 className="text-white mb-1">{booking.eventName || 'Parking Reservation'}</h3>
               <div className="flex items-center text-cyan-100">
                 <MapPin className="w-4 h-4 mr-1" />
-                <span className="text-sm">{booking.venue || booking.address || 'Location'}</span>
+                <span className="text-sm">{booking.spotId?.address || 'Location'}</span>
               </div>
             </div>
             {getStatusBadge(booking.status)}
