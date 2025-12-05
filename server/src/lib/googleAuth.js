@@ -10,7 +10,7 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
 
       // MUST be full URL in local development
-      callbackURL: "http://localhost:5000/api/auth/google/callback",
+      callbackURL: "https://four800project.onrender.com/api/auth/google/callback", //localhost:5000/api/auth/google/callback
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
