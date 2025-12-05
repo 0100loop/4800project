@@ -12,7 +12,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
-  const callbackURL = import.meta.env.VITE_GOOGLE_CALLBACK_URL;
+  const callbackURL = import.meta.env.VITE_API_BASE_URL
 
   const onChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
@@ -174,7 +174,7 @@ export default function Login() {
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  window.location.href = callbackURL;
+                  window.location.href = `${import.meta.env.VITE_API_URL}/auth/google`;
                 }}
                 className="w-full border border-gray-300 bg-white text-[#0A2540] hover:bg-gray-50 py-3 font-medium"
               >
