@@ -30,8 +30,8 @@ router.post("/create-checkout-session", async (req, res) => {
         },
       ],
 
-      success_url: `http://localhost:5173/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:5173/cancel`,
+      success_url: `http://${FRONTEND_URL}/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://${FRONTEND_URL}/cancel`,
     });
 
     res.json({ url: session.url });

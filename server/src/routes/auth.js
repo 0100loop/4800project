@@ -7,6 +7,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const router = express.Router();
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Ensure JWT secret exists
 if (!process.env.JWT_SECRET) {
@@ -163,7 +164,7 @@ router.get(
 
     // Redirect to frontend with token and name
     res.redirect(
-      `http://localhost:5173/auth-success?token=${token}&name=${encodeURIComponent(name)}`
+      `http://${FRONTEND_URL}/auth-success?token=${token}&name=${encodeURIComponent(name)}`
     );
   }
 );
