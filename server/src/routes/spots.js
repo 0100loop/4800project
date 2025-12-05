@@ -7,25 +7,15 @@ import Spot from "../models/Spot.js";
 const router = express.Router();
 
 /**
- * Flexible model that maps to the "spots" collection without enforcing a schema.
- * This avoids conflicts if you already have a Spot model with different fields.
-const Spot =
-  mongoose.models.__ParkItSpot ||
-  mongoose.model(
-    "__ParkItSpot",
-    new mongoose.Schema({}, { strict: false }),
-    "spots"
-  );
-  */
-
-// GET /api/spots  -> list spots (optionally filter by near lat/lng & radius in meters)
+ * GET /api/spots
+ * List spots, optionally filter by coordinates & radius
+ */
 router.get("/", async (req, res) => {
   try {
     const { lat, lng, radius } = req.query;
     let spots;
 
     if (lat && lng && radius) {
-      // Find spots near provided coordinates
       spots = await Spot.find({
         location: {
           $near: {
@@ -34,26 +24,28 @@ router.get("/", async (req, res) => {
           },
         },
       })
-        .populate("host", "name email") // 👈 populate host info
+        .populate("host", "name email")
         .limit(100);
     } else {
-      // Find all spots (limit 200)
       spots = await Spot.find()
-        .populate("host", "name email") // 👈 also populate here
+        .populate("host", "name email")
         .limit(200);
     }
 
     res.json(spots);
   } catch (e) {
     console.error("GET /api/spots error:", e);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ error: "Failed to load spots" });
   }
 });
 
+/**
+ * GET /api/spots/mine
+ * Return spots owned by logged-in user
+ */
 router.get("/mine", auth(), async (req, res) => {
   try {
-    const spots = await Spot.find({ host: req.user.id })
-      .populate("host", "name email"); // 👈 populate for your own listings too
+    const spots = await Spot.find({ host: req.user.id }).populate("host", "name email");
     res.json(spots);
   } catch (e) {
     console.error("GET /api/spots/mine error:", e);
@@ -61,85 +53,69 @@ router.get("/mine", auth(), async (req, res) => {
   }
 });
 
-// GET /api/spots/:id -> one spot
+/**
+ * GET /api/spots/:id
+ * Return one spot by ID
+ */
 router.get("/:id", async (req, res) => {
   try {
-    const spot = await Spot.findById(req.params.id);
-    if (!spot) return res.status(404).json({ error: "Not found" });
+    const spot = await Spot.findById(req.params.id).populate("host", "name email");
+    if (!spot) return res.status(404).json({ error: "Spot not found" });
     res.json(spot);
   } catch (e) {
     console.error("GET /api/spots/:id error:", e);
-    res.status(400).json({ error: "Invalid id" });
+    res.status(400).json({ error: "Invalid spot ID" });
   }
 });
 
-// POST /api/spots -> create (for Host dashboard)
+/**
+ * POST /api/spots
+ * Create a new spot (host only)
+ * Uses OpenStreetMap Nominatim API for geocoding
+ */
 router.post("/", auth(), async (req, res) => {
   try {
-    const query = encodeURIComponent(req.body.address);
-const geoRes = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=us&q=${query}`,
-  {
-    headers: {
-      "User-Agent": "ParkItApp/1.0 (contact@parkit.dev)" 
-    }
-  }
-);
+    const { address } = req.body;
+    if (!address) return res.status(400).json({ error: "Address is required" });
 
-if (!geoRes.ok) {
-  const errText = await geoRes.text();
-  console.error("Geocoding error:", errText);
-  return res.status(400).json({ error: "Failed to reach geocoding service" });
-}
-
-let geoData;
-try {
-  geoData = await geoRes.json();
-} catch (err) {
-  console.error("Geocoding returned invalid JSON:", err);
-  return res.status(400).json({ error: "Invalid response from geocoding service" });
-}
-
-if (!geoData.length) {
-  return res.status(400).json({ error: "Could not find location for that address" });
-}
-
-const { lat, lon } = geoData[0];
-
-
-
-    const doc = await Spot.create({
-      ...req.body,
-      host: req.user.id, // associate the spot with the current user's id
-      location: {
-        type: "Point",
-        coordinates: [parseFloat(lon), parseFloat(lat)] // GeoJSON uses [lng, lat]
+    const query = encodeURIComponent(address);
+    const geoRes = await fetch(
+      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=us&q=${query}`,
+      {
+        headers: {
+          "User-Agent": "parki-app/1.0 (contact@parki.dev)",
+          "Accept-Language": "en",
+        },
       }
-    });
-    
-    res.status(201).json(doc);
-  } catch (e) {
-    console.error("POST /api/spots error:", e);
-    res.status(400).json({ error: e.message });
-  }
-});
+    );
 
-// Create a new listing
-router.post("/", auth("user"), async (req, res) => {
-  try {
-    const data = req.body;
+    if (!geoRes.ok) {
+      const errText = await geoRes.text();
+      console.error("Geocoding error:", errText);
+      return res.status(400).json({ error: "Failed to reach geocoding service" });
+    }
+
+    const geoData = await geoRes.json();
+    if (!geoData.length) {
+      return res.status(400).json({ error: "Could not find location for that address" });
+    }
+
+    const { lat, lon } = geoData[0];
 
     const spot = await Spot.create({
-      host: req.user.id, // Comes from JWT
-      ...data,
-      isActive: true
+      ...req.body,
+      host: req.user.id,
+      isActive: true,
+      location: {
+        type: "Point",
+        coordinates: [parseFloat(lon), parseFloat(lat)],
+      },
     });
 
-    res.json({ message: "Spot created", spot });
-
+    res.status(201).json({ message: "Spot created", spot });
   } catch (e) {
-    console.error(e);
-    res.status(500).json({ error: e.message });
+    console.error("POST /api/spots error:", e);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
