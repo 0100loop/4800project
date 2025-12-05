@@ -3,6 +3,7 @@ import Stripe from "stripe";
 
 const router = express.Router();
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // POST /api/payments/create-checkout-session
 router.post("/create-checkout-session", async (req, res) => {
