@@ -1,4 +1,4 @@
-// lib/geocode.ts
+// utils/geocode.ts
 export async function geocodeAddress(address: string) {
   const query = encodeURIComponent(address);
   const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${query}`;
