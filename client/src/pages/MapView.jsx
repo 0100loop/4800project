@@ -87,7 +87,7 @@ export function MapView({ onNavigate, viewData }) {
 
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mapCenter, setMapCenter] = useState([34.05, -118.25]); // fallback LA
+  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
 
   const currentVenue =
     viewData?.venue?.name || viewData?.venue || "Crypto.com Arena";
@@ -113,19 +113,28 @@ export function MapView({ onNavigate, viewData }) {
       UPDATE MAP CENTER WHEN VENUE CHANGES
   ============================================================ */
   useEffect(() => {
-    async function updateCenter() {
-      const coords = await geocodeVenue(currentVenue);
-      if (coords) {
-        setMapCenter([coords.lat, coords.lng]);
-      }
+  async function updateCenter() {
+    let coords;
+
+    if (viewData?.venue?.coords) {
+      // Venue already has coordinates
+      coords = viewData.venue.coords;
+    } else {
+      // Otherwise, geocode venue name
+      coords = await geocodeVenue(currentVenue);
     }
-    updateCenter();
-  }, [currentVenue]);
+
+    if (coords) setMapCenter([coords.lat, coords.lng]);
+  }
+
+  updateCenter();
+}, [currentVenue, viewData]);
 
   /* ============================================================
       LOAD SPOTS BASED ON THE NEW MAP CENTER
   ============================================================ */
   useEffect(() => {
+    if (!mapCenter) return;
     async function loadSpots() {
       try {
         setLoading(true);
