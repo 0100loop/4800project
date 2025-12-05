@@ -7,7 +7,7 @@ import passport from "passport";
 import { Strategy as GoogleStrategy } from "passport-google-oauth20";
 
 const router = express.Router();
-const FRONTEND_URL = process.env.VITE_FRONTEND_URL;
+const FRONTEND_URL = process.env.FRONTEND_URL;
 
 // Ensure JWT secret exists
 if (!process.env.JWT_SECRET) {
