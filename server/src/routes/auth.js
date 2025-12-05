@@ -164,7 +164,7 @@ router.get(
 
     // Redirect to frontend with token and name
     res.redirect(
-      `https://${FRONTEND_URL}/auth-success?token=${token}&name=${encodeURIComponent(name)}`
+      `${FRONTEND_URL}/auth-success?token=${token}&name=${encodeURIComponent(name)}`
     );
   }
 );
