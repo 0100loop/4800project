@@ -19,6 +19,7 @@ import { Input } from './ui/input.js';
 import { Textarea } from './ui/textarea.js';
 import { Separator } from './ui/separator.js';
 import { useState, useEffect } from 'react';
+import { geocodeAddress } from '../lib/geocode.ts';
 // @ts-ignore
 import { apiFetch } from '../lib/api.js';
 
@@ -117,49 +118,63 @@ export function HostDashboard({ onNavigate }: HostDashboardProps) {
       */
     };
 
-    const handleSubmit = async () => {
-      const spotData = {
-        title: description,
-        pricePerEvent: price,
-        address,
-        /*
-        bathroom: bathroomAccess,
-        evCharging,
-        shuttle: shuttleService,
-        tailgateFriendly,
-        overnightAllowed: overnightParking,
-        */
-        spaces,
-      };
+   const handleSubmit = async () => {
+  try {
+    // 1️⃣ Get coordinates from client-side geocoding
+    const { lat, lon } = await geocodeAddress(address);
 
-      // Use VITE_API_BASE_URL when provided (e.g. http://localhost:3000).
-      // If not set, fall back to the relative path so existing setups keep working.
-      const apiBase = (import.meta as unknown as ImportMeta).env?.VITE_API_BASE_URL ?? "";
-      const url = apiBase ? apiBase.replace(/\/$/, "") + '/api/spots' : '/api/spots';
-
-      try {
-        const data = await apiFetch(url, { method: 'POST', body: spotData, auth:true });
-        console.log('✅ Spot created:', data);
-        // prepend to local state so the UI updates immediately
-        setMySpots((prev) => [{
-          id: data._id || data.id,
-          address: data.address || data.title || '',
-          price: data.price ?? data.pricePerEvent ?? 0,
-          totalBookings: data.totalBookings || 0,
-          earnings: data.earnings || 0,
-          nextEvent: data.nextEvent || null,
-          isActive: data.isActive ?? true,
-          raw: data,
-        }, ...prev]);
-  alert('Spot submitted for review!');
-  // clear the form for the next add
-  resetForm();
-  setIsAddingSpot(false);
-      } catch (err) {
-        console.error("❌ Error:", err);
-        alert("Failed to submit spot.");
-      }
+    // 2️⃣ Prepare spot data with coordinates
+    const spotData = {
+      title: description,
+      pricePerEvent: price,
+      address,
+      location: {
+        type: "Point",
+        coordinates: [lon, lat], // GeoJSON uses [lng, lat]
+      },
+      spaces,
+      /*
+      bathroom: bathroomAccess,
+      evCharging,
+      shuttle: shuttleService,
+      tailgateFriendly,
+      overnightAllowed: overnightParking,
+      */
     };
+
+    // 3️⃣ Send to backend
+    const apiBase = (import.meta as unknown as ImportMeta).env?.VITE_API_BASE_URL ?? "";
+    const url = apiBase ? apiBase.replace(/\/$/, "") + '/api/spots' : '/api/spots';
+    const data = await apiFetch(url, { method: 'POST', body: spotData, auth:true });
+
+    console.log('✅ Spot created:', data);
+    setMySpots((prev) => [{
+      id: data._id || data.id,
+      address: data.address || data.title || '',
+      price: data.price ?? data.pricePerEvent ?? 0,
+      totalBookings: data.totalBookings || 0,
+      earnings: data.earnings || 0,
+      nextEvent: data.nextEvent || null,
+      isActive: data.isActive ?? true,
+      raw: data,
+    }, ...prev]);
+
+    alert('Spot submitted for review!');
+    resetForm();
+    setIsAddingSpot(false);
+
+  } catch (err: unknown) {
+    if (err instanceof Error) {
+        console.error("❌ Error:", err);
+        alert(err.message);
+    } else {
+        console.error("❌ Unknown error:", err);
+        alert("Failed to submit spot.");
+    }
+}
+
+};
+
 
 
     return (
