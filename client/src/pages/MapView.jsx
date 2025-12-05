@@ -87,7 +87,8 @@ export function MapView({ onNavigate, viewData }) {
 
   const [spots, setSpots] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
+  const [mapCenter, setMapCenter] = useState(null);
+
 
   const currentVenue =
     viewData?.venue?.name || viewData?.venue || "Crypto.com Arena";
