@@ -12,7 +12,13 @@ import paymentsRouter from "./routes/payments.js";
 
 const app = express();
 app.use(express.json());
-app.use(cors({ origin: ["https://four800project-frontend.onrender.com/login", "https://four800project.onrender.com"], credentials: true }));
+app.use(
+  cors({
+    origin: ["https://four800project-frontend.onrender.com"],
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+    credentials: true,
+  })
+);
 
 app.use('/api/health', healthRouter);
 app.use('/api/auth', authRouter);
