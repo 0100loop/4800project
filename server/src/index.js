@@ -4,6 +4,7 @@ import mongoose from 'mongoose';
 import app from './app.js';
 import Spot from './models/Spot.js';
 import path from "path";
+import express from "express";  
 import { fileURLToPath } from "url";
 
 const PORT = process.env.PORT || 5000;
