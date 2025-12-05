@@ -12,7 +12,7 @@ export default function Login() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
-  const callbackURL = import.meta.env.VITE_GOOGLE_CALLBACK;
+  const callbackURL = import.meta.env.VITE_GOOGLE_CALLBACK_URL;
 
   const onChange = e => setForm(prev => ({ ...prev, [e.target.name]: e.target.value }));
 
