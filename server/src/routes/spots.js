@@ -75,40 +75,56 @@ router.get("/:id", async (req, res) => {
  */
 router.post("/", auth(), async (req, res) => {
   try {
-    const { address } = req.body;
+    const { address, location } = req.body;
+
     if (!address) return res.status(400).json({ error: "Address is required" });
 
-    const query = encodeURIComponent(address);
-    const geoRes = await fetch(
-      `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=us&q=${query}`,
-      {
-        headers: {
-          "User-Agent": "parki-app/1.0 (contact@parki.dev)",
-          "Accept-Language": "en",
-        },
+    let coordinates;
+
+    // ✅ Use client-side geocoded coordinates if provided
+    if (location?.coordinates?.length === 2) {
+      coordinates = location.coordinates;
+    } else {
+      // Optional: fallback server-side geocoding if you want
+      const query = encodeURIComponent(address);
+      try {
+        const geoRes = await fetch(
+          `https://nominatim.openstreetmap.org/search?format=json&addressdetails=1&limit=1&countrycodes=us&q=${query}`,
+          {
+            headers: {
+              "User-Agent": "parki-app/1.0 (contact@parki.dev)",
+              "Accept-Language": "en",
+            },
+          }
+        );
+
+        if (!geoRes.ok) {
+          const errText = await geoRes.text();
+          console.error("Geocoding error:", errText);
+          return res.status(400).json({ error: "Failed to reach geocoding service" });
+        }
+
+        const geoData = await geoRes.json();
+        if (!geoData.length) {
+          return res.status(400).json({ error: "Could not find location for that address" });
+        }
+
+        const { lat, lon } = geoData[0];
+        coordinates = [parseFloat(lon), parseFloat(lat)];
+      } catch (err) {
+        console.error("Server-side geocoding failed:", err);
+        return res.status(500).json({ error: "Internal server error" });
       }
-    );
-
-    if (!geoRes.ok) {
-      const errText = await geoRes.text();
-      console.error("Geocoding error:", errText);
-      return res.status(400).json({ error: "Failed to reach geocoding service" });
     }
 
-    const geoData = await geoRes.json();
-    if (!geoData.length) {
-      return res.status(400).json({ error: "Could not find location for that address" });
-    }
-
-    const { lat, lon } = geoData[0];
-
+    // Create spot with coordinates
     const spot = await Spot.create({
       ...req.body,
       host: req.user.id,
       isActive: true,
       location: {
         type: "Point",
-        coordinates: [parseFloat(lon), parseFloat(lat)],
+        coordinates,
       },
     });
 
@@ -118,5 +134,6 @@ router.post("/", auth(), async (req, res) => {
     res.status(500).json({ error: "Internal server error" });
   }
 });
+
 
 export default router;
