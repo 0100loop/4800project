@@ -253,7 +253,8 @@ export function MapView({ onNavigate, viewData }) {
                 ]);
                 onNavigate("spot", {
                   spot: s,
-                  date: s.eventDate,
+                  event: viewData?.event,
+                  venue: viewData?.venue,
                 });
               }}
             >
