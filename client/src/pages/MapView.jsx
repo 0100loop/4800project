@@ -18,6 +18,7 @@ import { apiFetch } from "../lib/api";
 /* ============================================================
     GEOCODING — fetch coordinates for ANY venue name
 ============================================================ */
+
 async function geocodeVenue(name) {
   // Try multiple search variations to improve success rate
   const searchVariations = [
@@ -250,7 +251,10 @@ export function MapView({ onNavigate, viewData }) {
                   s.location.coordinates[1],
                   s.location.coordinates[0],
                 ]);
-                onNavigate("spot", { spot: s });
+                onNavigate("spot", {
+                  spot: s,
+                  eventDate: s.eventDate,
+                });
               }}
             >
              <CardContent className="p-4">

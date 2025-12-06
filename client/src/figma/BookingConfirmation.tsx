@@ -37,16 +37,22 @@ export function BookingConfirmation({
   const [phone, setPhone] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
 
-  // Extract the actual listing from bookingData
+  // Extract data from bookingData
   const spot = bookingData?.spot || bookingData;
+  const event = bookingData?.event; // Get event data
+  const venue = bookingData?.venue; // Get venue data
 
-  // spot schema fields
+  // Parse values
   const price = Number(spot?.pricePerEvent || 0);
-  const date = spot?.date ? new Date(spot.date) : new Date();
+  
+  // Use event date if available, otherwise fall back to spot date or current date
+  const eventDateString = event?.date || spot?.date;
+  const date = eventDateString ? new Date(eventDateString) : new Date();
+  
   const distanceKm = Number(spot?.distanceKm || 0);
   const distanceMeters = Number(spot?.distanceMeters || 0);
 
-  console.log('Parsed values:', { price, distanceKm, distanceMeters, spot });
+  console.log('Parsed values:', { price, distanceKm, distanceMeters, spot, event, eventDate: eventDateString });
 
   const serviceFee = 2.50;
   const total = price + serviceFee;
@@ -66,7 +72,9 @@ export function BookingConfirmation({
         email,
         phone,
         totalPrice: total,
-        date: new Date().toISOString(),
+        date: eventDateString || new Date().toISOString(), // Use event date
+        eventName: event?.name || 'Parking Reservation', // Store event name
+        eventId: event?.id, // Store event ID if available
         paid: false,
       };
 
@@ -119,7 +127,7 @@ export function BookingConfirmation({
       }
       console.log('Booking created:', bookingResp);
 
-      // backend currently returns { message, booking } — accept both shapes
+      // backend currently returns { success, booking }
       const createdBooking = bookingResp.booking || bookingResp;
       const bookingId = createdBooking?._id || createdBooking?.id;
       
@@ -208,6 +216,12 @@ export function BookingConfirmation({
                 <div>
                   <h3 className="text-[#0A2540] mb-3 font-semibold">Booking Details</h3>
                   <div className="space-y-2 text-sm">
+                    {event?.name && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-600">Event</span>
+                        <span className="text-[#0A2540]">{event.name}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-600">Date</span>
                       <span className="text-[#0A2540]">
@@ -215,6 +229,7 @@ export function BookingConfirmation({
                           month: "short",
                           day: "numeric",
                           year: "numeric",
+                          timeZone: "UTC"
                         })}
                       </span>
                     </div>
@@ -293,9 +308,19 @@ export function BookingConfirmation({
           {/* SUMMARY CARD */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <h3 className="text-[#0A2540] mb-4 font-semibold">Parking Spot Details</h3>
+              <h3 className="text-[#0A2540] mb-4 font-semibold">Booking Summary</h3>
 
               <div className="space-y-3 mb-4">
+                {event?.name && (
+                  <div className="flex items-start gap-3">
+                    <Calendar className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-[#0A2540] font-medium">{event.name}</p>
+                      <p className="text-sm text-gray-600">{venue?.name || 'Event venue'}</p>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
@@ -312,6 +337,24 @@ export function BookingConfirmation({
                     )}
                   </div>
                 </div>
+                
+                {eventDateString && (
+                  <div className="flex items-start gap-3">
+                    <Clock className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
+                    <div className="flex-1">
+                      <p className="text-[#0A2540] font-medium">
+                        {date.toLocaleDateString('en-US', { 
+                          weekday: 'long',
+                          month: 'long', 
+                          day: 'numeric', 
+                          year: 'numeric',
+                          timeZone: 'UTC'
+                        })}
+                      </p>
+                      <p className="text-sm text-gray-600">Event date</p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <Separator className="my-4" />
