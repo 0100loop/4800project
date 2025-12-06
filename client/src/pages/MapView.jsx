@@ -19,26 +19,50 @@ import { apiFetch } from "../lib/api";
     GEOCODING — fetch coordinates for ANY venue name
 ============================================================ */
 async function geocodeVenue(name) {
-  try {
-    const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
-      name
-    )}`;
+  // Try multiple search variations to improve success rate
+  const searchVariations = [
+    name, // Original name
+    name.replace(/-/g, ' '), // Replace hyphens with spaces
+    name.replace(/-/g, ', '), // Replace hyphens with commas
+    name.split('-')[0].trim(), // Just the first part before hyphen
+  ];
 
-    const res = await fetch(url, {
-      headers: { "User-Agent": "parking-app" },
-    });
+  for (const searchTerm of searchVariations) {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&limit=1&q=${encodeURIComponent(
+        searchTerm
+      )}`;
 
-    const data = await res.json();
-    if (!data.length) return null;
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000);
 
-    return {
-      lat: parseFloat(data[0].lat),
-      lng: parseFloat(data[0].lon),
-    };
-  } catch (err) {
-    console.error("Geocoding error:", err);
-    return null;
+      const res = await fetch(url, {
+        headers: { "User-Agent": "parking-app" },
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      const data = await res.json();
+      if (data.length) {
+        console.log(`Geocoded "${name}" using search term: "${searchTerm}"`);
+        return {
+          lat: parseFloat(data[0].lat),
+          lng: parseFloat(data[0].lon),
+        };
+      }
+
+      // Respect Nominatim rate limit (1 req/sec)
+      await new Promise(resolve => setTimeout(resolve, 1000));
+    } catch (err) {
+      console.error(`Geocoding error for "${searchTerm}":`, err);
+      // Continue to next variation
+    }
   }
+
+  console.warn(`Could not geocode "${name}" with any variation`);
+  return null;
 }
 
 /* ============================================================
