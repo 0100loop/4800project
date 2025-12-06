@@ -29,7 +29,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
         
         
         console.log('Bookings loaded:', data);
-        setBookings(data || []);
+        setBookings(Array.isArray(data.bookings) ? data.bookings : []);
         setLoading(false);
       } catch (err) {
         console.error('Error loading bookings:', err);
