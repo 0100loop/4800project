@@ -26,8 +26,6 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
           auth: true,
         });
 
-        
-        
         console.log('Bookings loaded:', data);
         setBookings(Array.isArray(data.bookings) ? data.bookings : []);
         setLoading(false);
@@ -43,8 +41,19 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
 
   // Separate bookings into upcoming and past
   const now = new Date();
-  const upcomingBookings = bookings.filter(b => new Date(b.date) >= now);
-  const pastBookings = bookings.filter(b => new Date(b.date) < now);
+  now.setHours(0, 0, 0, 0); // Reset to start of today for comparison
+  
+  const upcomingBookings = bookings.filter(b => {
+    const bookingDate = new Date(b.date);
+    bookingDate.setHours(0, 0, 0, 0); // Compare just the date, not time
+    return bookingDate >= now;
+  });
+  
+  const pastBookings = bookings.filter(b => {
+    const bookingDate = new Date(b.date);
+    bookingDate.setHours(0, 0, 0, 0);
+    return bookingDate < now;
+  });
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -81,7 +90,13 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    // Format in local timezone to avoid date shifting
+    return date.toLocaleDateString('en-US', { 
+      month: 'short', 
+      day: 'numeric', 
+      year: 'numeric',
+      timeZone: 'UTC' // Use UTC to prevent timezone conversion
+    });
   };
 
   const renderBookingCard = (booking: any) => (
@@ -91,7 +106,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
         <div className="bg-gradient-to-r from-[#0A2540] to-[#134E6F] p-4 text-white">
           <div className="flex items-start justify-between mb-2">
             <div className="flex-1">
-              <h3 className="text-white mb-1">{booking.eventName || 'Parking Reservation'}</h3>
+              <h3 className="text-white mb-1 font-semibold">{booking.eventName || 'Parking Reservation'}</h3>
               <div className="flex items-center text-cyan-100">
                 <MapPin className="w-4 h-4 mr-1" />
                 <span className="text-sm">{booking.spotId?.address || 'Location'}</span>
@@ -118,7 +133,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
           {/* Booking ID */}
           <div className="flex items-center justify-between text-sm">
             <span className="text-gray-600">Booking ID:</span>
-            <span className="text-[#0A2540]">{booking._id?.slice(-8) || 'N/A'}</span>
+            <span className="text-[#0A2540] font-mono">{booking._id?.slice(-8) || 'N/A'}</span>
           </div>
 
           {/* Contact Info */}
@@ -149,7 +164,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
           <div className="flex items-center justify-between pt-3 border-t border-gray-200">
             <div className="flex items-center text-[#0A2540]">
               <DollarSign className="w-5 h-5" />
-              <span className="text-xl">{booking.totalPaid || booking.totalPrice || 0}</span>
+              <span className="text-xl font-semibold">{booking.totalPaid || booking.totalPrice || 0}</span>
             </div>
             <span className="text-sm text-gray-600">
               Paid on {formatDate(booking.createdAt || booking.bookingDate || booking.date)}
@@ -204,7 +219,7 @@ export function MyBookings({ onNavigate, apiFetch }: MyBookingsProps) {
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
-            <h1 className="text-white">My Bookings</h1>
+            <h1 className="text-white text-2xl font-semibold">My Bookings</h1>
           </div>
 
           {/* Tabs */}
