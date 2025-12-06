@@ -25,46 +25,146 @@ interface BookingConfirmationProps {
   bookingData: any; // listing directly
 }
 
-export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirmationProps) {
+interface BookingConfirmationProps {
+  onNavigate: (view: string, data?: any) => void;
+  bookingData: any;
+}
+
+export function BookingConfirmation({
+  onNavigate,
+  bookingData,
+}: BookingConfirmationProps) {
+  console.log('BookingConfirmation received bookingData:', bookingData);
+  
   const [isConfirmed, setIsConfirmed] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  const [cardNumber, setCardNumber] = useState("");
-  const [expiry, setExpiry] = useState("");
-  const [cvv, setCvv] = useState("");
-  const [cardholderName, setCardholderName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
   const [confirmationCode, setConfirmationCode] = useState("");
 
-  // Extract booking data with fallbacks
-  const spot = bookingData?.spot || {};
-  const event = bookingData?.event || {};
-  const venue = bookingData?.venue || {};
-  const spotPrice = spot.pricePerEvent || bookingData?.total || 15;
-  const serviceFee = 2.50;
-  const totalPrice = spotPrice + serviceFee;
+  // Extract the actual listing from bookingData
+  const spot = bookingData?.spot || bookingData;
 
-  const handlePayment = async () => {
-    // Basic validation
-    if (!cardNumber || !expiry || !cvv || !cardholderName) {
-      alert("Please fill in all payment fields");
+  // spot schema fields
+  const price = Number(spot?.pricePerEvent || 0);
+  const date = spot?.date ? new Date(spot.date) : new Date();
+  const distanceKm = Number(spot?.distanceKm || 0);
+  const distanceMeters = Number(spot?.distanceMeters || 0);
+
+  console.log('Parsed values:', { price, distanceKm, distanceMeters, spot });
+
+  const serviceFee = 2.50;
+  const total = price + serviceFee;
+
+  const handleConfirmBooking = async () => {
+    if (!email || !phone) {
+      alert("Please enter your contact information.");
       return;
     }
 
     setIsProcessing(true);
 
     try {
-      // Simulate API call to create booking
-      // In production, this would call your backend API
-      await new Promise(resolve => setTimeout(resolve, 1500));
+      // 1️⃣ Save the booking (unpaid) in your DB
+      const bookingPayload = {
+        spotId: spot?._id,
+        email,
+        phone,
+        totalPrice: total,
+        date: new Date().toISOString(),
+        paid: false,
+      };
 
-      // Generate confirmation code
-      const code = `PK-${new Date().getFullYear()}-${Math.floor(Math.random() * 9000 + 1000)}`;
-      setConfirmationCode(code);
-      setIsConfirmed(true);
+      console.log('Creating booking with payload:', bookingPayload);
+
+      const bookingRes = await fetch("/api/bookings", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${localStorage.getItem("token")}`,
+        },
+        body: JSON.stringify(bookingPayload),
+      });
+
+      console.log('Booking response status:', bookingRes.status);
+
+      if (!bookingRes.ok) {
+        const errText = await bookingRes.text();
+        console.error('Booking POST failed:', bookingRes.status, errText);
+        setIsProcessing(false);
+        return alert('Failed to create booking: ' + (errText || bookingRes.status));
+      }
+
+      // Check if response has content before parsing JSON
+      const contentType = bookingRes.headers.get("content-type");
+      if (!contentType || !contentType.includes("application/json")) {
+        const text = await bookingRes.text();
+        console.error('Non-JSON response from booking API:', text);
+        setIsProcessing(false);
+        return alert('Server returned invalid response format');
+      }
+
+      const bookingResp = await bookingRes.json();
+      console.log('Booking created:', bookingResp);
+
+      // backend currently returns { message, booking } — accept both shapes
+      const createdBooking = bookingResp.booking || bookingResp;
+      const bookingId = createdBooking?._id || createdBooking?.id;
+      
+      if (!bookingId) {
+        console.error('Booking created but no id returned', bookingResp);
+        setIsProcessing(false);
+        return alert('Booking created but no id returned from server');
+      }
+
+      // 2️⃣ Create Stripe Checkout session for this booking
+      console.log('Creating Stripe session for booking:', bookingId);
+
+      const stripeRes = await fetch("/api/payments/create-checkout-session", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          amount: total,
+          bookingId,
+          spotId: spot._id
+        }),
+      });
+
+      console.log('Stripe response status:', stripeRes.status);
+
+      if (!stripeRes.ok) {
+        const errText = await stripeRes.text();
+        console.error('Stripe session creation failed:', stripeRes.status, errText);
+        setIsProcessing(false);
+        return alert('Failed to create payment session: ' + (errText || stripeRes.status));
+      }
+
+      // Check if Stripe response has content before parsing JSON
+      const stripeContentType = stripeRes.headers.get("content-type");
+      if (!stripeContentType || !stripeContentType.includes("application/json")) {
+        const text = await stripeRes.text();
+        console.error('Non-JSON response from Stripe API:', text);
+        setIsProcessing(false);
+        return alert('Payment service returned invalid response format');
+      }
+
+      const sessionData = await stripeRes.json();
+      console.log('Stripe session created:', sessionData);
+
+      if (!sessionData.url) {
+        console.error('No Stripe URL in response:', sessionData);
+        setIsProcessing(false);
+        return alert("Stripe error: No checkout URL returned. Try again.");
+      }
+
+      // 3️⃣ Redirect to Stripe Checkout
+      console.log('Redirecting to Stripe checkout:', sessionData.url);
+      window.location.href = sessionData.url;
+
     } catch (error) {
-      console.error("Payment error:", error);
-      alert("Payment failed. Please try again.");
-    } finally {
+      console.error('Error in handleConfirmBooking:', error);
       setIsProcessing(false);
+      alert('An unexpected error occurred: ' + (error as Error).message);
     }
   };
 
@@ -76,7 +176,7 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
             <div className="w-20 h-20 bg-[#06B6D4] rounded-full flex items-center justify-center mx-auto mb-4">
               <Check className="w-10 h-10 text-white" />
             </div>
-            <h2 className="text-[#0A2540] mb-2 text-xl font-semibold">Booking Confirmed!</h2>
+            <h2 className="text-[#0A2540] mb-2 text-2xl font-semibold">Booking Confirmed!</h2>
             <p className="text-gray-600">Your parking spot has been reserved</p>
           </div>
 
@@ -94,30 +194,24 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
                   <h3 className="text-[#0A2540] mb-3 font-semibold">Booking Details</h3>
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
-                      <span className="text-gray-600">Event</span>
-                      <span className="text-[#0A2540]">{event.name || "Event"}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-gray-600">Venue</span>
-                      <span className="text-[#0A2540]">{venue.name || "Venue"}</span>
-                    </div>
-                    <div className="flex justify-between">
                       <span className="text-gray-600">Date</span>
                       <span className="text-[#0A2540]">
-                        {event.date ? new Date(event.date).toLocaleDateString('en-US', { 
-                          month: 'short', 
-                          day: 'numeric', 
-                          year: 'numeric' 
-                        }) : "TBD"}
+                        {date.toLocaleDateString("en-US", {
+                          month: "short",
+                          day: "numeric",
+                          year: "numeric",
+                        })}
                       </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Location</span>
-                      <span className="text-[#0A2540]">{spot.address || "Parking spot"}</span>
+                      <span className="text-[#0A2540]">
+                        {distanceKm > 0 ? `${distanceKm.toFixed(2)} km away` : spot.address}
+                      </span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Total Paid</span>
-                      <span className="text-[#0A2540] font-semibold">${totalPrice.toFixed(2)}</span>
+                      <span className="text-[#0A2540] font-semibold">${total.toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -126,9 +220,15 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
 
                 <div className="bg-yellow-50 border border-yellow-200 rounded-lg p-3">
                   <p className="text-sm text-yellow-800">
-                    <strong>Access Code:</strong> #{Math.floor(Math.random() * 9000 + 1000)}
+                    <strong>Access Code:</strong> #{Math.floor(1000 + Math.random() * 9000)}
                     <br />
                     <span className="text-xs">Share this code with the host upon arrival</span>
+                  </p>
+                </div>
+
+                <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                  <p className="text-sm text-blue-800">
+                    <strong>Confirmation email sent to:</strong> {email || "your email address"}
                   </p>
                 </div>
               </div>
@@ -136,18 +236,18 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
           </Card>
 
           <div className="mt-6 space-y-3">
-            <Button 
-              onClick={() => onNavigate('home')} 
+            <Button
+              onClick={() => onNavigate("bookings")}
               className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white"
             >
-              Return to Home
+              View My Bookings
             </Button>
-            <Button 
-              variant="outline" 
-              className="w-full border-[#0A2540] text-[#0A2540]" 
-              onClick={() => onNavigate('map', bookingData)}
+            <Button
+              onClick={() => onNavigate("home")}
+              variant="outline"
+              className="w-full border-[#0A2540] text-[#0A2540]"
             >
-              View on Map
+              Return to Home
             </Button>
           </div>
         </div>
@@ -155,161 +255,163 @@ export function BookingConfirmation({ onNavigate, bookingData }: BookingConfirma
     );
   }
 
+  // MAIN CHECKOUT UI
   return (
     <div className="min-h-screen bg-white flex flex-col">
+      {/* Header */}
       <div className="bg-white border-b border-gray-200 px-4 py-3 flex items-center gap-3">
-        <Button 
-          variant="ghost" 
-          size="icon" 
-          onClick={() => onNavigate('spot', bookingData)} 
-          className="rounded-full text-[#0A2540]"
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => onNavigate("spot", bookingData)}
+          className="rounded-full"
+          disabled={isProcessing}
         >
           <ChevronLeft className="w-5 h-5" />
         </Button>
-        <h3 className="text-[#0A2540] flex-1">Confirm Booking</h3>
+        <h3 className="text-[#0A2540] flex-1 text-lg font-semibold">Complete Your Booking</h3>
       </div>
 
+      {/* Content */}
       <div className="flex-1 overflow-y-auto pb-32">
         <div className="max-w-2xl mx-auto px-4 py-6">
+          {/* SUMMARY CARD */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <h3 className="text-[#0A2540] mb-4 font-semibold">Booking Summary</h3>
+              <h3 className="text-[#0A2540] mb-4 font-semibold">Parking Spot Details</h3>
+
               <div className="space-y-3 mb-4">
                 <div className="flex items-start gap-3">
-                  <Calendar className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[#0A2540]">{event.name || "Event"}</p>
-                    <p className="text-sm text-gray-600">{venue.name || "Venue"}</p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <Clock className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[#0A2540]">
-                      {event.date ? new Date(event.date).toLocaleDateString('en-US', { 
-                        month: 'long', 
-                        day: 'numeric', 
-                        year: 'numeric' 
-                      }) : "Date TBD"}
-                    </p>
-                    <p className="text-sm text-gray-600">
-                      {event.time || "Time TBD"}
-                    </p>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
                   <MapPin className="w-5 h-5 text-[#06B6D4] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <p className="text-[#0A2540]">{spot.address || "Parking location"}</p>
-                    <p className="text-sm text-gray-600">
-                      {spot.distance ? (
-                        spot.distance / 1000 < 1 
-                          ? `${Math.round(spot.distance)} m from venue`
-                          : `${(spot.distance / 1000).toFixed(2)} km from venue`
-                      ) : "Near venue"}
-                    </p>
+                  <div className="flex-1">
+                    <p className="text-[#0A2540] font-medium">{spot.address}</p>
+                    {distanceKm > 0 && (
+                      <p className="text-sm text-gray-600">
+                        {distanceKm.toFixed(2)} km • {Math.round(distanceMeters / 80)} min walk
+                      </p>
+                    )}
+                    {spot.spaces && (
+                      <p className="text-sm text-gray-600">
+                        Spaces available: {spot.spaces}
+                      </p>
+                    )}
                   </div>
                 </div>
               </div>
+
               <Separator className="my-4" />
-              <div className="space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-gray-600">Parking spot</span>
-                  <span className="text-[#0A2540]">${spotPrice.toFixed(2)}</span>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Parking price</span>
+                  <span className="text-[#0A2540]">${price.toFixed(2)}</span>
                 </div>
-                <div className="flex justify-between">
+                <div className="flex justify-between text-sm">
                   <span className="text-gray-600">Service fee</span>
                   <span className="text-[#0A2540]">${serviceFee.toFixed(2)}</span>
                 </div>
                 <Separator className="my-2" />
                 <div className="flex justify-between">
                   <span className="text-[#0A2540] font-semibold">Total</span>
-                  <span className="text-xl text-[#0A2540] font-semibold">${totalPrice.toFixed(2)}</span>
+                  <span className="text-xl text-[#0A2540] font-semibold">
+                    ${total.toFixed(2)}
+                  </span>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* CONTACT INFO */}
           <Card className="mb-6">
             <CardContent className="p-4">
-              <h3 className="text-[#0A2540] mb-4 font-semibold">Payment Method</h3>
+              <h3 className="text-[#0A2540] mb-4 font-semibold">Contact Information</h3>
+
               <div className="space-y-4">
                 <div>
-                  <Label htmlFor="cardNumber">Card Number</Label>
+                  <Label htmlFor="email" className="text-gray-700 mb-1">
+                    Email Address
+                  </Label>
                   <div className="relative">
-                    <Input 
-                      id="cardNumber" 
-                      placeholder="1234 5678 9012 3456" 
-                      value={cardNumber} 
-                      onChange={e => setCardNumber(e.target.value.replace(/\D/g, '').slice(0, 16))}
-                      className="pl-10 text-[#0A2540] bg-white"
-                      maxLength={16}
+                    <Input
+                      id="email"
+                      type="email"
+                      placeholder="your.email@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      disabled={isProcessing}
+                      className="pl-10 bg-white border-gray-300 text-gray-900"
                     />
-                    <CreditCard className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                    <Mail className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
                   </div>
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="expiry">Expiry</Label>
-                    <Input 
-                      id="expiry" 
-                      placeholder="MM/YY" 
-                      value={expiry}
-                      onChange={e => {
-                        let val = e.target.value.replace(/\D/g, '');
-                        if (val.length >= 2) val = val.slice(0, 2) + '/' + val.slice(2, 4);
-                        setExpiry(val);
-                      }}
-                      className="text-[#0A2540] bg-white"
-                      maxLength={5}
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="cvv">CVV</Label>
-                    <Input 
-                      id="cvv" 
-                      placeholder="123" 
-                      value={cvv}
-                      onChange={e => setCvv(e.target.value.replace(/\D/g, '').slice(0, 3))}
-                      maxLength={3} 
-                      className="text-[#0A2540] bg-white"
-                    />
-                  </div>
-                </div>
+
                 <div>
-                  <Label htmlFor="name">Cardholder Name</Label>
-                  <Input 
-                    id="name" 
-                    placeholder="John Doe" 
-                    value={cardholderName}
-                    onChange={e => setCardholderName(e.target.value)}
-                    className="text-[#0A2540] bg-white"
-                  />
+                  <Label htmlFor="phone" className="text-gray-700 mb-1">
+                    Phone Number
+                  </Label>
+                  <div className="relative">
+                    <Input
+                      id="phone"
+                      type="tel"
+                      placeholder="+1 (555) 123-4567"
+                      value={phone}
+                      onChange={(e) => setPhone(e.target.value)}
+                      disabled={isProcessing}
+                      className="pl-10 bg-white border-gray-300 text-gray-900"
+                    />
+                    <Phone className="w-4 h-4 text-gray-400 absolute left-3 top-1/2 -translate-y-1/2" />
+                  </div>
                 </div>
               </div>
             </CardContent>
           </Card>
 
+          {/* PAYMENT INFO */}
+          <Card className="mb-6">
+            <CardContent className="p-4">
+              <h3 className="text-[#0A2540] mb-4 font-semibold">Payment</h3>
+
+              <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
+                <div className="flex items-center gap-3 mb-3">
+                  <Shield className="w-5 h-5 text-[#06B6D4]" />
+                  <p className="text-gray-700 text-sm font-medium">
+                    Secure payment powered by Stripe
+                  </p>
+                </div>
+                <p className="text-gray-600 text-sm mb-3">
+                  You'll be redirected to Stripe's secure checkout to complete your payment.
+                </p>
+                <img
+                  src="https://stripe.com/img/v3/home/twitter.png"
+                  alt="Stripe"
+                  className="h-6 opacity-80"
+                />
+              </div>
+            </CardContent>
+          </Card>
+
+          {/* Security Note */}
           <div className="flex items-center gap-2 text-sm text-gray-600 justify-center mb-6">
             <Shield className="w-4 h-4 text-[#06B6D4]" />
-            <span>Your payment information is secure and encrypted</span>
+            <span>Your payment information is encrypted and secure</span>
           </div>
         </div>
       </div>
 
+      {/* Bottom Bar */}
       <div className="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 shadow-lg">
         <div className="max-w-2xl mx-auto">
-          <Button 
-            onClick={handlePayment} 
-            disabled={isProcessing}
-            className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white py-6 disabled:opacity-50"
+          <Button
+            onClick={handleConfirmBooking}
+            disabled={!email || !phone || isProcessing}
+            className="w-full bg-[#06B6D4] hover:bg-[#0891B2] text-white py-6 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isProcessing ? (
-              "Processing..."
+              <>Processing...</>
             ) : (
               <>
-                <DollarSign className="w-4 h-4 mr-2" /> 
-                Confirm & Pay ${totalPrice.toFixed(2)}
+                <DollarSign className="w-4 h-4 mr-2" />
+                Confirm & Pay ${total.toFixed(2)}
               </>
             )}
           </Button>
