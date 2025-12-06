@@ -4,6 +4,12 @@ import mongoose from "mongoose";
 import Booking from "../models/Booking.js";
 import Spot from "../models/Spot.js";
 import auth from "../middleware/auth.js";
+import Stripe from "stripe";
+
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+  apiVersion: "2023-10-16",
+});
+const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:5173";
 
 const router = express.Router();
 
