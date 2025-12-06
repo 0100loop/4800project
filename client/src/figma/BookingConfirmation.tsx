@@ -22,11 +22,6 @@ import { useState } from "react";
 
 interface BookingConfirmationProps {
   onNavigate: (view: string, data?: any) => void;
-  bookingData: any; // listing directly
-}
-
-interface BookingConfirmationProps {
-  onNavigate: (view: string, data?: any) => void;
   bookingData: any;
 }
 
@@ -77,7 +72,11 @@ export function BookingConfirmation({
 
       console.log('Creating booking with payload:', bookingPayload);
 
-      const bookingRes = await fetch("/api/bookings", {
+      const API_URL = import.meta.env.VITE_API_BASE_URL || '';
+      const bookingUrl = `${API_URL}/api/bookings`;
+      console.log('Making request to:', bookingUrl);
+
+      const bookingRes = await fetch(bookingUrl, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -87,6 +86,7 @@ export function BookingConfirmation({
       });
 
       console.log('Booking response status:', bookingRes.status);
+      console.log('Booking response headers:', Object.fromEntries(bookingRes.headers.entries()));
 
       if (!bookingRes.ok) {
         const errText = await bookingRes.text();
@@ -95,16 +95,28 @@ export function BookingConfirmation({
         return alert('Failed to create booking: ' + (errText || bookingRes.status));
       }
 
-      // Check if response has content before parsing JSON
-      const contentType = bookingRes.headers.get("content-type");
-      if (!contentType || !contentType.includes("application/json")) {
-        const text = await bookingRes.text();
-        console.error('Non-JSON response from booking API:', text);
+      // Get the response text first to see what we're actually receiving
+      const responseText = await bookingRes.text();
+      console.log('Raw response text:', responseText);
+      console.log('Response text length:', responseText.length);
+
+      // Check if response is empty
+      if (!responseText || responseText.trim().length === 0) {
+        console.error('Empty response body from booking API');
         setIsProcessing(false);
-        return alert('Server returned invalid response format');
+        return alert('Server returned empty response. Check server logs.');
       }
 
-      const bookingResp = await bookingRes.json();
+      // Try to parse JSON
+      let bookingResp;
+      try {
+        bookingResp = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('Failed to parse JSON:', parseError);
+        console.error('Response was:', responseText);
+        setIsProcessing(false);
+        return alert('Server returned invalid JSON format');
+      }
       console.log('Booking created:', bookingResp);
 
       // backend currently returns { message, booking } — accept both shapes
@@ -120,7 +132,10 @@ export function BookingConfirmation({
       // 2️⃣ Create Stripe Checkout session for this booking
       console.log('Creating Stripe session for booking:', bookingId);
 
-      const stripeRes = await fetch("/api/payments/create-checkout-session", {
+      const stripeUrl = `${API_URL}/api/payments/create-checkout-session`;
+      console.log('Making Stripe request to:', stripeUrl);
+
+      const stripeRes = await fetch(stripeUrl, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
